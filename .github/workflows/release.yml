@@ -1,30 +1,21 @@
-name: Prepare Toolbox release draft
+name: Check, build and release C Toolbox
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: toolbox-release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  prepare:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: python toolbox/build_headers.py
-      - run: python toolbox/build.py
-      - run: python toolbox/tests/test_modular.py
-      - run: python toolbox/tests/test_toolbox.py
-      - run: python toolbox/tests/test_workflow.py
-      - run: python toolbox/build.py --check
-      - uses: actions/upload-artifact@v4
-        with:
-          name: c-toolbox-release-candidate
-          path: toolbox/dist/c_toolbox_v*.py
-          if-no-files-found: error
-  draft:
-    if: github.ref == 'refs/heads/main'
-    needs: prepare
+  checks:
+    uses: ./.github/workflows/toolbox.yml
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: checks
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -34,15 +25,31 @@ jobs:
         with:
           name: c-toolbox-release-candidate
           path: assets
-      - name: Create versioned draft without replacing published files
+      - name: Publish new version after successful checks
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          version="$(python -c 'import json; print(json.load(open("toolbox/catalog.json", encoding="utf-8"))["version"])')"
-          if gh release view "v$version" >/dev/null 2>&1; then
-            echo "Release already exists; use a new version."
-            exit 1
+          version="$(python -c 'import json; v=json.load(open("toolbox/catalog.json", encoding="utf-8"))["version"]; import re; assert re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+",v); print(v)')"
+          tag="v$version"
+          asset="assets/c_toolbox_v$version.py"
+          test -s "$asset"
+          test "$(find assets -type f | wc -l)" -eq 1
+          gh release list --limit 10000 --json tagName,isDraft > /tmp/releases.json
+          state="$(python -c 'import json,sys; r=next((r for r in json.load(open("/tmp/releases.json")) if r["tagName"]==sys.argv[1]),None); print("missing" if r is None else "draft" if r["isDraft"] else "published")' "$tag")"
+          if [ "$state" = published ]; then
+            echo "$tag already published; skipping without changing assets."
+            exit 0
           fi
-          gh release create "v$version" "assets/c_toolbox_v$version.py" --draft --prerelease --target "$GITHUB_SHA" --title "C Toolbox v$version" --notes-file toolbox/RELEASE_NOTES.md
+          if [ "$state" = draft ]; then
+            target="$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)"
+            test "$target" = "$GITHUB_SHA" || { echo "Draft belongs to another commit; inspect it before retrying."; exit 1; }
+          else
+            gh release create "$tag" --draft --target "$GITHUB_SHA" --title "C Toolbox $tag" --notes-file toolbox/RELEASE_NOTES.md
+          fi
+          gh release upload "$tag" "$asset" --clobber
+          gh release view "$tag" --json assets > /tmp/assets.json
+          python -c 'import json,sys; a=json.load(open("/tmp/assets.json"))["assets"]; assert len(a)==1 and a[0]["name"]==sys.argv[1]' "c_toolbox_v$version.py"
+          gh release edit "$tag" --draft=false --prerelease=false --latest
+          gh release view "$tag" --json url,isDraft,isPrerelease,assets
