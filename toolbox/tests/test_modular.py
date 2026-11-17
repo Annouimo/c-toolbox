@@ -18,9 +18,8 @@ class ModularTests(unittest.TestCase):
                 path=folder/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(code)
             self.assertNotIn('String', (folder/'ctb/io.h').read_text())
             source='''#include "ctb/string.h"
-#include "ctb/vec_int.h"
-#include "ctb/vec_double.h"
-#include "ctb/counter.h"
+#include "ctb/vector/int.h"
+#include "ctb/vector/double.h"
 #include <assert.h>
 int main(void){
  StringReadResult a=try_read_line_raw(); assert(a.status==IO_OK && !a.value.len);string_free(&a.value);
@@ -40,7 +39,7 @@ int main(void){
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.7.0.py'
+        script=ROOT/'dist/c_toolbox_v0.8.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
@@ -51,6 +50,52 @@ int main(void){
                 exe=folder/('check.exe' if os.name=='nt' else 'check')
                 subprocess.run([os.environ.get('CC','gcc'),'-std=c99',*shlex.split(os.environ.get('TOOLBOX_CFLAGS','')),str(folder/'main.c'),'-lm','-o',str(exe)],check=True,capture_output=True)
                 subprocess.run([str(exe)],input=data,text=True,check=True)
+
+    def test_typed_headers_in_prepared_submission(self):
+        script = ROOT / 'dist/c_toolbox_v0.8.0.py'
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / 'problem'
+            subprocess.run([sys.executable, str(script), '--folder', str(folder)],
+                           check=True, capture_output=True)
+            cases = [('int', 'Int', 'int', ''),
+                     ('long_long', 'LongLong', 'll', ''),
+                     ('double', 'Double', 'double', '2, ')]
+            source = ['#include <assert.h>', '#include "ctb/string_list.h"']
+            for path, _, _, _ in cases:
+                for group in ('vector', 'matrix'):
+                    source.append(f'#include "ctb/{group}/{path}.h"')
+            source.append('int main(void) {')
+            for _, name, suffix, precision in cases:
+                source.append(f"""
+    {{
+        {name}Vector v = read_{suffix}s(2);
+        {name}Vector_sort_asc(&v);
+        assert({name}Vector_get(&v, 0) == 1);
+        print_{suffix}s(&v, {precision}" ", "\\n");
+        {name}Vector_free(&v);
+
+        {name}Matrix m = read_{suffix}_matrix(1, 2);
+        {name}Matrix t = {name}Matrix_transpose(&m);
+        {name}Matrix p = {name}Matrix_multiply(&m, &t);
+        assert({name}Matrix_get(&p, 0, 0) == 13);
+        print_{suffix}_matrix(&p, {precision}" ", "");
+        {name}Matrix_free(&p);
+        {name}Matrix_free(&t);
+        {name}Matrix_free(&m);
+    }}""")
+            source.append('    return 0;\n}')
+            (folder / 'main.c').write_text('\n'.join(source), encoding='utf-8')
+            subprocess.run([sys.executable, str(folder / 'prepare.py'), '--no-copy'],
+                           check=True, capture_output=True)
+            submission = folder / '.toolbox' / 'submit.c'
+            exe = folder / ('typed.exe' if os.name == 'nt' else 'typed')
+            cc = os.environ.get('CC', 'gcc')
+            flags = shlex.split(os.environ.get('TOOLBOX_CFLAGS', ''))
+            subprocess.run([cc, '-std=c99', *flags, str(submission), '-lm', '-o', str(exe)],
+                           check=True)
+            result = subprocess.run([str(exe)], input='2 1 2 3\n' * 3, text=True,
+                                    check=True, capture_output=True)
+            self.assertEqual(result.stdout, '1 2\n13\n1 2\n13\n1.00 2.00\n13.00\n')
 
     def test_bigint_against_python(self):
         randomizer=random.Random(70117)

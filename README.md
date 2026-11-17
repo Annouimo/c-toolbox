@@ -2,11 +2,11 @@
 
 面向熟悉 C 的使用者，提供按需引入的 C99 字符串、容器和 IO。由 Annouimo/c-exam-kit 的工具箱开发分支迁入，原提交历史保留。
 
-v0.7.0 整理了头文件目录和输出接口，并扩展了通用容器。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
+v0.8.0 拆分 String 与 StringList，统一 Vector 和 Matrix 的头文件路径与调用方式。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
 
 ## 使用
 
-下载 Release 的单文件 Python 入口；运行后输入题目目录，再选择程序框架：空白 main、T 组、EOF、哨兵、q 次操作，或仅创建工具箱。空输入直接导出 Markdown 手册。输入类型由用户在循环中按题目修改，不单独提供成组的类型骨架。创建的 main.c 默认仅包含 `ctb/io.h`；字符串用 `ctb/string.h`，整数向量用 `ctb/vec_int.h`，其他类型按需引入。头文件放在题目目录的 `ctb/` 文件夹中。
+下载 Release 的单文件 Python 入口；运行后输入题目目录，再选择程序框架：空白 main、T 组、EOF、哨兵、q 次操作，或仅创建工具箱。空输入直接导出 Markdown 手册。输入类型由用户在循环中按题目修改，不单独提供成组的类型骨架。创建的 main.c 默认仅包含 `ctb/io.h`；字符串用 `ctb/string.h`，整数向量用 `ctb/vector/int.h`，其他类型按需引入。头文件放在题目目录的 `ctb/` 文件夹中。
 
 每题目录自带 prepare.py，运行后扫描 C 文件、选择源文件、展开本地依赖、检查编译并复制提交源码。不会运行用户程序，除非指定 --run；不会覆盖原文件。每题保留创建时版本。
 
@@ -34,7 +34,7 @@ int main(void) {
 }
 ```
 
-字符串增加 `#include "ctb/string.h"`；IntVector 增加 `#include "ctb/vec_int.h"`。所有权、模块表和接口以[速查手册](toolbox/docs/quick_reference.md)为准。
+字符串增加 `#include "ctb/string.h"`；IntVector 增加 `#include "ctb/vector/int.h"`。所有权、模块表和接口以[速查手册](toolbox/docs/quick_reference.md)为准。
 
 ## 发布
 

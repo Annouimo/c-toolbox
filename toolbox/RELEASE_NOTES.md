@@ -1,7 +1,8 @@
-# C Toolbox v0.7.0
+# C Toolbox v0.8.0
 
-- 头文件统一放入 `ctb/`，文件名移除重复的 `ctb_` 前缀；按需引入。
-- 创建题目只需输入目录并选择程序框架：空白、T 组、EOF、哨兵、q 次操作或仅创建工具箱。题目目录不再重复生成手册；在入口直接回车可导出 Markdown 手册。
-- 输出函数统一支持 `end` 参数；浮点输出支持指定小数位数并消除负零。
-- 扩展多类型矩阵、数值键 Map、ByteVector、上下文回调、稳定 argsort、字符串多模式删除和通用模运算工具。
-- `prepare.py` 仍按本题引入的模块展开提交源码，每题保留创建时的工具箱版本。
+- String 与 StringList 分别使用 `ctb/string.h` 和 `ctb/string_list.h`。
+- Vector 与 Matrix 按元素类型从 `ctb/vector/` 和 `ctb/matrix/` 引入。三种数值矩阵共用模板，新增自定义 Matrix。保留 IndexVector。
+- 移除两个无符号预制 Vector 和 Map、Set、Counter、NumericMap、ByteVector、Deque、Heap 的公开头文件。标量 IO 接口完整保留。
+- 专用工具按用途归入 `ctb/math/` 和 `ctb/sequence/`，具体路径见速查手册。升级已有题目时需更新旧 include 路径。
+
+下载 `c_toolbox_v0.8.0.py` 创建题目目录，目录内的 `prepare.py` 可展开新路径的头文件并检查提交源码。

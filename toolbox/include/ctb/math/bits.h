@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_BITS_H
 #define CTB_BITS_H
-#include "core.h"
+#include "../detail/core.h"
 /* Bit zero is the least significant bit; operate on unsigned long long. */
 static void tb_check_bit(unsigned int bit){if(bit>=sizeof(unsigned long long)*CHAR_BIT)tb_fail("bit index out of range");}
 static bool bit_get(unsigned long long value,unsigned int bit){tb_check_bit(bit);return ((value>>bit)&1)!=0;}

@@ -1,6 +1,6 @@
-#ifndef CTB_VECTOR_H
-#define CTB_VECTOR_H
-#include "core.h"
+#ifndef CTB_VECTOR_CUSTOM_H
+#define CTB_VECTOR_CUSTOM_H
+#include "../detail/core.h"
 #ifndef CTB_JOIN
 #define CTB_JOIN_RAW(a,b) a##b
 #define CTB_JOIN(a,b) CTB_JOIN_RAW(a,b)

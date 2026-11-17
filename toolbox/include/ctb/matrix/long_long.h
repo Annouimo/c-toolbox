@@ -1,12 +1,13 @@
-#ifndef CTB_MATRIX_LL_H
-#define CTB_MATRIX_LL_H
-#include "io.h"
-/* Generated typed integer matrix; values are owned and row-major. */
+#ifndef CTB_MATRIX_LONG_LONG_H
+#define CTB_MATRIX_LONG_LONG_H
+#include "../io.h"
+#include "detail/integer.h"
+/* SPDX-License-Identifier: MIT-0 */
 typedef struct { long long *data; size_t rows, cols; } LongLongMatrix;
 static LongLongMatrix LongLongMatrix_new(size_t rows,size_t cols) {
     if(cols && rows>SIZE_MAX/cols)tb_fail("matrix size overflow");
     size_t n=rows*cols;LongLongMatrix m={n?tb_resize(NULL,n,sizeof *m.data):NULL,rows,cols};
-    for(size_t i=0;i<n;++i)m.data[i]=0;
+    for(size_t i=0;i<n;++i)m.data[i]=(long long){0};
     return m;
 }
 static size_t LongLongMatrix_index(const LongLongMatrix *m,size_t row,size_t col) {
@@ -25,18 +26,20 @@ static LongLongMatrix LongLongMatrix_transpose(const LongLongMatrix *m) {
     for(size_t i=0;i<m->rows;++i)for(size_t j=0;j<m->cols;++j)result.data[j*result.cols+i]=m->data[i*m->cols+j];
     return result;
 }
+static void LongLongMatrix_free(LongLongMatrix *m) { free(m->data);*m=(LongLongMatrix){0}; }
+static void LongLongMatrix_swap(LongLongMatrix *a,LongLongMatrix *b) { LongLongMatrix x=*a;*a=*b;*b=x; }
+/* SPDX-License-Identifier: MIT-0 */
 static LongLongMatrix LongLongMatrix_multiply(const LongLongMatrix *a,const LongLongMatrix *b) {
     if(a->cols!=b->rows)tb_fail("matrix dimension mismatch");
     LongLongMatrix result=LongLongMatrix_new(a->rows,b->cols);
     for(size_t i=0;i<a->rows;++i)for(size_t j=0;j<b->cols;++j) {
         long long total=0;
         for(size_t k=0;k<a->cols;++k) {
-            long long product;
-            if(a->data[i*a->cols+k] && b->data[k*b->cols+j]) { long long x=a->data[i*a->cols+k],y=b->data[k*b->cols+j]; if((x==-1 && y==LLONG_MIN)||(y==-1 && x==LLONG_MIN)||(x>0 ? (y>0 ? x>LLONG_MAX/y : y<LLONG_MIN/x) : (y>0 ? x<LLONG_MIN/y : x<LLONG_MAX/y)))tb_fail("matrix multiplication overflow"); product=x*y; } else product=0;
-            if((product>0 && total>LLONG_MAX-product)||(product<0 && total<LLONG_MIN-product))tb_fail("matrix multiplication overflow");
-            total+=product;
+            long long x = a->data[i*a->cols+k];
+            long long y = b->data[k*b->cols+j];
+            total = tb_matrix_add_product(total, x, y);
         }
-        
+
         result.data[i*result.cols+j]=(long long)total;
     }
     return result;
@@ -48,12 +51,10 @@ static LongLongMatrix read_ll_matrix(size_t rows,size_t cols) {
 }
 static void print_ll_matrix(const LongLongMatrix *m,const char *separator,const char *end) {
     for(size_t i=0;i<m->rows;++i) {
-        for(size_t j=0;j<m->cols;++j) { if(j)print_text(separator,"");print_ll(m->data[i*m->cols+j],""); }
+        for(size_t j=0;j<m->cols;++j) { if(j)print_text(separator,"");long long value = m->data[i*m->cols+j]; print_ll(value, ""); }
         print_char('\n',"");
     }
     print_text("",end);
 }
-static void LongLongMatrix_free(LongLongMatrix *m) { free(m->data);*m=(LongLongMatrix){0}; }
-static void LongLongMatrix_swap(LongLongMatrix *a,LongLongMatrix *b) { LongLongMatrix x=*a;*a=*b;*b=x; }
 
 #endif

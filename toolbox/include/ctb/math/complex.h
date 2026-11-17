@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_COMPLEX_H
 #define CTB_COMPLEX_H
-#include "io.h"
+#include "../io.h"
 #include <complex.h>
 typedef double complex Complex;
 static Complex complex_new(double real,double imaginary){return real+imaginary*I;}

@@ -60,9 +60,3 @@ static void string_remove_all_s(String *s, const String *needle) {
 static size_t string_remove_repeated_s(String *s, const String *needle) {
     return string_remove_repeated(s, string_cstr(needle));
 }
-static StringList string_split_s(const String *s, const String *delimiter) {
-    return string_split(s, string_cstr(delimiter));
-}
-static String string_join_s(const StringList *list, const String *separator) {
-    return string_join(list, string_cstr(separator));
-}

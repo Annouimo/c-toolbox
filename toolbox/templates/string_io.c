@@ -48,7 +48,6 @@ static String read_line(void){StringReadResult r=try_read_line();io_require(r.st
 static String read_line_raw(void){StringReadResult r=try_read_line_raw();io_require(r.status);return r.value;}
 static String read_rest(void){return read_line_raw();}
 static void print_string(const String *s,const char *end){print_text(string_cstr(s),end);}
-static StringList read_words(size_t count){StringList result={0};for(size_t i=0;i<count;++i){String s=read_word();string_list_push_take(&result,&s);}return result;}
 
 /* After a token, reject extra nonspace data before crossing into next line. */
 static IOStatus io_finish_line(IOReader *r) {

@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "modules": {
     "core": {
       "template": "core.c",
@@ -13,10 +13,12 @@
       ],
       "description": "动态字符串、编辑、分割与连接",
       "extra_templates": [
+        "string_list_base.c",
         "string_extra.c",
         "string_format.c",
         "string_list.c",
-        "string_objects.c"
+        "string_objects.c",
+        "string_list_objects.c"
       ]
     },
     "vector": {

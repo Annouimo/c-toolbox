@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_RANGE_DIFFERENCE_H
 #define CTB_RANGE_DIFFERENCE_H
-#include "vec_int.h"
-#include "vec_ll.h"
+#include "../vector/int.h"
+#include "../vector/long_long.h"
 /* Range-add difference buffer. The extra slot stores the right boundary sentinel. */
 typedef struct { LongLongVector diff; size_t len; } RangeDifference;
 static RangeDifference range_difference_new(size_t len) {
