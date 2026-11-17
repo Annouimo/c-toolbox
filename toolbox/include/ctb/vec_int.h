@@ -326,9 +326,9 @@ static IntVector IntVector_range(int start, int stop, int step) {
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; int value; } IntVectorResult;
-static IntVectorResult IntVector_try_get(const IntVector *v,size_t pos){IntVectorResult r={false,(int){0}};r.ok=IntVector_get_into(v,pos,&r.value);return r;}
+static IntVectorResult IntVector_try_get(const IntVector *v,size_t pos){IntVectorResult r={0};r.ok=IntVector_get_into(v,pos,&r.value);return r;}
 static int IntVector_get(const IntVector *v,size_t pos){IntVectorResult r=IntVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static IntVectorResult IntVector_try_pop(IntVector *v){IntVectorResult r={false,(int){0}};r.ok=IntVector_pop_into(v,&r.value);return r;}
+static IntVectorResult IntVector_try_pop(IntVector *v){IntVectorResult r={0};r.ok=IntVector_pop_into(v,&r.value);return r;}
 static int IntVector_pop(IntVector *v){IntVectorResult r=IntVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static int IntVector_front(const IntVector *v){return IntVector_get(v,0);}
 static int IntVector_back(const IntVector *v){if(!v->len)tb_fail("back of empty vector");return IntVector_get(v,v->len-1);}

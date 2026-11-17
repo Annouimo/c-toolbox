@@ -199,9 +199,9 @@ static size_t IndexVector_reduce_ctx(const IndexVector *v,size_t initial,size_t 
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; size_t value; } IndexVectorResult;
-static IndexVectorResult IndexVector_try_get(const IndexVector *v,size_t pos){IndexVectorResult r={false,(size_t){0}};r.ok=IndexVector_get_into(v,pos,&r.value);return r;}
+static IndexVectorResult IndexVector_try_get(const IndexVector *v,size_t pos){IndexVectorResult r={0};r.ok=IndexVector_get_into(v,pos,&r.value);return r;}
 static size_t IndexVector_get(const IndexVector *v,size_t pos){IndexVectorResult r=IndexVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static IndexVectorResult IndexVector_try_pop(IndexVector *v){IndexVectorResult r={false,(size_t){0}};r.ok=IndexVector_pop_into(v,&r.value);return r;}
+static IndexVectorResult IndexVector_try_pop(IndexVector *v){IndexVectorResult r={0};r.ok=IndexVector_pop_into(v,&r.value);return r;}
 static size_t IndexVector_pop(IndexVector *v){IndexVectorResult r=IndexVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static size_t IndexVector_front(const IndexVector *v){return IndexVector_get(v,0);}
 static size_t IndexVector_back(const IndexVector *v){if(!v->len)tb_fail("back of empty vector");return IndexVector_get(v,v->len-1);}

@@ -5,15 +5,18 @@ typedef struct { bool ok; long long value; } StringLongLongResult;
 typedef struct { bool ok; double value; } StringDoubleResult;
 static StringIntResult string_parse_int(const String *s) {
     StringIntResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
-    if(errno==ERANGE || end==string_cstr(s) || *end || x<INT_MIN || x>INT_MAX)return r;r.ok=true;r.value=(int)x;return r;
+    if(errno==ERANGE || end==string_cstr(s) || *end || x<INT_MIN || x>INT_MAX)return r;
+    r.ok=true;r.value=(int)x;return r;
 }
 static StringLongLongResult string_parse_ll(const String *s) {
     StringLongLongResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
-    if(errno==ERANGE || end==string_cstr(s) || *end)return r;r.ok=true;r.value=x;return r;
+    if(errno==ERANGE || end==string_cstr(s) || *end)return r;
+    r.ok=true;r.value=x;return r;
 }
 static StringDoubleResult string_parse_double(const String *s) {
     StringDoubleResult r={false,0};if(!s->len)return r;char *end;errno=0;double x=strtod(string_cstr(s),&end);
-    if(errno==ERANGE || end==string_cstr(s) || *end || !isfinite(x))return r;r.ok=true;r.value=x;return r;
+    if(errno==ERANGE || end==string_cstr(s) || *end || !isfinite(x))return r;
+    r.ok=true;r.value=x;return r;
 }
 static StringReadResult io_try_read_word(IOReader *r) {
     StringReadResult result={IO_OK,{0}};char *token=tb_io_token(r,&result.status);

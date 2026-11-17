@@ -142,7 +142,8 @@ static String string_slice_step(const String *s,size_t first,size_t last,size_t 
     return result;
 }
 static String string_repeat_char(char ch,size_t count) {
-    if(!ch && count)tb_fail("NUL is not a text character");String result=string_new();
+    if(!ch && count)tb_fail("NUL is not a text character");
+    String result=string_new();
     string_reserve(&result,count);if(count)memset(result.data,ch,count);result.data[count]='\0';result.len=count;return result;
 }
 static String string_repeat(const String *s,size_t count) {
@@ -158,12 +159,14 @@ static void string_append_slice(String *s,const String *source,size_t first,size
     String slice=string_slice(source,first,count);string_append(s,string_cstr(&slice));string_free(&slice);
 }
 static void string_pad_left(String *s,size_t width,char fill) {
-    if(!fill)tb_fail("NUL is not a text character");if(width<=s->len)return;
+    if(!fill)tb_fail("NUL is not a text character");
+    if(width<=s->len)return;
     size_t padding=width-s->len;string_reserve(s,width);memmove(s->data+padding,s->data,s->len+1);
     memset(s->data,fill,padding);s->len=width;
 }
 static void string_pad_right(String *s,size_t width,char fill) {
-    if(!fill)tb_fail("NUL is not a text character");if(width<=s->len)return;
+    if(!fill)tb_fail("NUL is not a text character");
+    if(width<=s->len)return;
     size_t padding=width-s->len;string_reserve(s,width);memset(s->data+s->len,fill,padding);
     s->len=width;s->data[width]='\0';
 }
@@ -414,11 +417,13 @@ static int tb_string_index_compare(const StringSortContext *ctx,size_t a,size_t 
     return order?order:(a<b?-1:a>b?1:0);
 }
 static void tb_string_index_merge_sort(size_t *data,size_t *scratch,size_t n,const StringSortContext *ctx) {
-    if(n<2)return;size_t mid=n/2;
+    if(n<2)return;
+    size_t mid=n/2;
     tb_string_index_merge_sort(data,scratch,mid,ctx);tb_string_index_merge_sort(data+mid,scratch+mid,n-mid,ctx);
     size_t i=0,j=mid,k=0;
     while(i<mid && j<n)scratch[k++]=tb_string_index_compare(ctx,data[i],data[j])<=0?data[i++]:data[j++];
-    while(i<mid)scratch[k++]=data[i++];while(j<n)scratch[k++]=data[j++];
+    while(i<mid)scratch[k++]=data[i++];
+    while(j<n)scratch[k++]=data[j++];
     memcpy(data,scratch,n*sizeof *data);
 }
 static IndexVector string_list_argsort_by(const StringList *list,int (*compare)(const void *,const void *)) {
@@ -547,15 +552,18 @@ typedef struct { bool ok; long long value; } StringLongLongResult;
 typedef struct { bool ok; double value; } StringDoubleResult;
 static StringIntResult string_parse_int(const String *s) {
     StringIntResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
-    if(errno==ERANGE || end==string_cstr(s) || *end || x<INT_MIN || x>INT_MAX)return r;r.ok=true;r.value=(int)x;return r;
+    if(errno==ERANGE || end==string_cstr(s) || *end || x<INT_MIN || x>INT_MAX)return r;
+    r.ok=true;r.value=(int)x;return r;
 }
 static StringLongLongResult string_parse_ll(const String *s) {
     StringLongLongResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
-    if(errno==ERANGE || end==string_cstr(s) || *end)return r;r.ok=true;r.value=x;return r;
+    if(errno==ERANGE || end==string_cstr(s) || *end)return r;
+    r.ok=true;r.value=x;return r;
 }
 static StringDoubleResult string_parse_double(const String *s) {
     StringDoubleResult r={false,0};if(!s->len)return r;char *end;errno=0;double x=strtod(string_cstr(s),&end);
-    if(errno==ERANGE || end==string_cstr(s) || *end || !isfinite(x))return r;r.ok=true;r.value=x;return r;
+    if(errno==ERANGE || end==string_cstr(s) || *end || !isfinite(x))return r;
+    r.ok=true;r.value=x;return r;
 }
 static StringReadResult io_try_read_word(IOReader *r) {
     StringReadResult result={IO_OK,{0}};char *token=tb_io_token(r,&result.status);

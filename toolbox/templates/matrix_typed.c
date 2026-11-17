@@ -14,7 +14,8 @@ static @TYPE@ @NAME@_get(const @NAME@ *m,size_t row,size_t col) { return m->data
 static void @NAME@_set(@NAME@ *m,size_t row,size_t col,@TYPE@ value) { m->data[@NAME@_index(m,row,col)]=value; }
 static @NAME@ @NAME@_clone(const @NAME@ *m) {
     @NAME@ copy=@NAME@_new(m->rows,m->cols);size_t n=m->rows*m->cols;
-    if(n)memcpy(copy.data,m->data,n*sizeof *m->data);return copy;
+    if(n)memcpy(copy.data,m->data,n*sizeof *m->data);
+    return copy;
 }
 static @NAME@ @NAME@_transpose(const @NAME@ *m) {
     @NAME@ result=@NAME@_new(m->cols,m->rows);
@@ -39,7 +40,8 @@ static @NAME@ @NAME@_multiply(const @NAME@ *a,const @NAME@ *b) {
 }
 static @NAME@ read_@SUFFIX@_matrix(size_t rows,size_t cols) {
     @NAME@ m=@NAME@_new(rows,cols);size_t n=rows*cols;
-    for(size_t i=0;i<n;++i)m.data[i]=@READ@();return m;
+    for(size_t i=0;i<n;++i)m.data[i]=@READ@();
+    return m;
 }
 static void print_@SUFFIX@_matrix(const @NAME@ *m,const char *separator,const char *end) {
     for(size_t i=0;i<m->rows;++i) {

@@ -17,7 +17,8 @@ static int IntMatrix_get(const IntMatrix *m,size_t row,size_t col) { return m->d
 static void IntMatrix_set(IntMatrix *m,size_t row,size_t col,int value) { m->data[IntMatrix_index(m,row,col)]=value; }
 static IntMatrix IntMatrix_clone(const IntMatrix *m) {
     IntMatrix copy=IntMatrix_new(m->rows,m->cols);size_t n=m->rows*m->cols;
-    if(n)memcpy(copy.data,m->data,n*sizeof *m->data);return copy;
+    if(n)memcpy(copy.data,m->data,n*sizeof *m->data);
+    return copy;
 }
 static IntMatrix IntMatrix_transpose(const IntMatrix *m) {
     IntMatrix result=IntMatrix_new(m->cols,m->rows);
@@ -42,7 +43,8 @@ static IntMatrix IntMatrix_multiply(const IntMatrix *a,const IntMatrix *b) {
 }
 static IntMatrix read_int_matrix(size_t rows,size_t cols) {
     IntMatrix m=IntMatrix_new(rows,cols);size_t n=rows*cols;
-    for(size_t i=0;i<n;++i)m.data[i]=read_int();return m;
+    for(size_t i=0;i<n;++i)m.data[i]=read_int();
+    return m;
 }
 static void print_int_matrix(const IntMatrix *m,const char *separator,const char *end) {
     for(size_t i=0;i<m->rows;++i) {

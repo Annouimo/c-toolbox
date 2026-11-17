@@ -307,9 +307,9 @@ static double DoubleVector_sum(const DoubleVector *v) {
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; double value; } DoubleVectorResult;
-static DoubleVectorResult DoubleVector_try_get(const DoubleVector *v,size_t pos){DoubleVectorResult r={false,(double){0}};r.ok=DoubleVector_get_into(v,pos,&r.value);return r;}
+static DoubleVectorResult DoubleVector_try_get(const DoubleVector *v,size_t pos){DoubleVectorResult r={0};r.ok=DoubleVector_get_into(v,pos,&r.value);return r;}
 static double DoubleVector_get(const DoubleVector *v,size_t pos){DoubleVectorResult r=DoubleVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static DoubleVectorResult DoubleVector_try_pop(DoubleVector *v){DoubleVectorResult r={false,(double){0}};r.ok=DoubleVector_pop_into(v,&r.value);return r;}
+static DoubleVectorResult DoubleVector_try_pop(DoubleVector *v){DoubleVectorResult r={0};r.ok=DoubleVector_pop_into(v,&r.value);return r;}
 static double DoubleVector_pop(DoubleVector *v){DoubleVectorResult r=DoubleVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static double DoubleVector_front(const DoubleVector *v){return DoubleVector_get(v,0);}
 static double DoubleVector_back(const DoubleVector *v){if(!v->len)tb_fail("back of empty vector");return DoubleVector_get(v,v->len-1);}

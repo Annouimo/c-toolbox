@@ -17,7 +17,8 @@ static long long LongLongMatrix_get(const LongLongMatrix *m,size_t row,size_t co
 static void LongLongMatrix_set(LongLongMatrix *m,size_t row,size_t col,long long value) { m->data[LongLongMatrix_index(m,row,col)]=value; }
 static LongLongMatrix LongLongMatrix_clone(const LongLongMatrix *m) {
     LongLongMatrix copy=LongLongMatrix_new(m->rows,m->cols);size_t n=m->rows*m->cols;
-    if(n)memcpy(copy.data,m->data,n*sizeof *m->data);return copy;
+    if(n)memcpy(copy.data,m->data,n*sizeof *m->data);
+    return copy;
 }
 static LongLongMatrix LongLongMatrix_transpose(const LongLongMatrix *m) {
     LongLongMatrix result=LongLongMatrix_new(m->cols,m->rows);
@@ -42,7 +43,8 @@ static LongLongMatrix LongLongMatrix_multiply(const LongLongMatrix *a,const Long
 }
 static LongLongMatrix read_ll_matrix(size_t rows,size_t cols) {
     LongLongMatrix m=LongLongMatrix_new(rows,cols);size_t n=rows*cols;
-    for(size_t i=0;i<n;++i)m.data[i]=read_ll();return m;
+    for(size_t i=0;i<n;++i)m.data[i]=read_ll();
+    return m;
 }
 static void print_ll_matrix(const LongLongMatrix *m,const char *separator,const char *end) {
     for(size_t i=0;i<m->rows;++i) {

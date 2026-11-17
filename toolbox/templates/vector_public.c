@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; @TYPE@ value; } @NAME@Result;
-static @NAME@Result @NAME@_try_get(const @NAME@ *v,size_t pos){@NAME@Result r={false,(@TYPE@){0}};r.ok=@NAME@_get_into(v,pos,&r.value);return r;}
+static @NAME@Result @NAME@_try_get(const @NAME@ *v,size_t pos){@NAME@Result r={0};r.ok=@NAME@_get_into(v,pos,&r.value);return r;}
 static @TYPE@ @NAME@_get(const @NAME@ *v,size_t pos){@NAME@Result r=@NAME@_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static @NAME@Result @NAME@_try_pop(@NAME@ *v){@NAME@Result r={false,(@TYPE@){0}};r.ok=@NAME@_pop_into(v,&r.value);return r;}
+static @NAME@Result @NAME@_try_pop(@NAME@ *v){@NAME@Result r={0};r.ok=@NAME@_pop_into(v,&r.value);return r;}
 static @TYPE@ @NAME@_pop(@NAME@ *v){@NAME@Result r=@NAME@_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static @TYPE@ @NAME@_front(const @NAME@ *v){return @NAME@_get(v,0);}
 static @TYPE@ @NAME@_back(const @NAME@ *v){if(!v->len)tb_fail("back of empty vector");return @NAME@_get(v,v->len-1);}

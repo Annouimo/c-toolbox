@@ -309,9 +309,9 @@ static unsigned long long UIntVector_sum(const UIntVector *v) {
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; unsigned int value; } UIntVectorResult;
-static UIntVectorResult UIntVector_try_get(const UIntVector *v,size_t pos){UIntVectorResult r={false,(unsigned int){0}};r.ok=UIntVector_get_into(v,pos,&r.value);return r;}
+static UIntVectorResult UIntVector_try_get(const UIntVector *v,size_t pos){UIntVectorResult r={0};r.ok=UIntVector_get_into(v,pos,&r.value);return r;}
 static unsigned int UIntVector_get(const UIntVector *v,size_t pos){UIntVectorResult r=UIntVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static UIntVectorResult UIntVector_try_pop(UIntVector *v){UIntVectorResult r={false,(unsigned int){0}};r.ok=UIntVector_pop_into(v,&r.value);return r;}
+static UIntVectorResult UIntVector_try_pop(UIntVector *v){UIntVectorResult r={0};r.ok=UIntVector_pop_into(v,&r.value);return r;}
 static unsigned int UIntVector_pop(UIntVector *v){UIntVectorResult r=UIntVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static unsigned int UIntVector_front(const UIntVector *v){return UIntVector_get(v,0);}
 static unsigned int UIntVector_back(const UIntVector *v){if(!v->len)tb_fail("back of empty vector");return UIntVector_get(v,v->len-1);}

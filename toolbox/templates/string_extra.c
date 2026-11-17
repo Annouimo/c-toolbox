@@ -9,7 +9,8 @@ static String string_slice_step(const String *s,size_t first,size_t last,size_t 
     return result;
 }
 static String string_repeat_char(char ch,size_t count) {
-    if(!ch && count)tb_fail("NUL is not a text character");String result=string_new();
+    if(!ch && count)tb_fail("NUL is not a text character");
+    String result=string_new();
     string_reserve(&result,count);if(count)memset(result.data,ch,count);result.data[count]='\0';result.len=count;return result;
 }
 static String string_repeat(const String *s,size_t count) {
@@ -25,12 +26,14 @@ static void string_append_slice(String *s,const String *source,size_t first,size
     String slice=string_slice(source,first,count);string_append(s,string_cstr(&slice));string_free(&slice);
 }
 static void string_pad_left(String *s,size_t width,char fill) {
-    if(!fill)tb_fail("NUL is not a text character");if(width<=s->len)return;
+    if(!fill)tb_fail("NUL is not a text character");
+    if(width<=s->len)return;
     size_t padding=width-s->len;string_reserve(s,width);memmove(s->data+padding,s->data,s->len+1);
     memset(s->data,fill,padding);s->len=width;
 }
 static void string_pad_right(String *s,size_t width,char fill) {
-    if(!fill)tb_fail("NUL is not a text character");if(width<=s->len)return;
+    if(!fill)tb_fail("NUL is not a text character");
+    if(width<=s->len)return;
     size_t padding=width-s->len;string_reserve(s,width);memset(s->data+s->len,fill,padding);
     s->len=width;s->data[width]='\0';
 }

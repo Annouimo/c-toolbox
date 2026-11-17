@@ -309,9 +309,9 @@ static unsigned long long ULongLongVector_sum(const ULongLongVector *v) {
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; unsigned long long value; } ULongLongVectorResult;
-static ULongLongVectorResult ULongLongVector_try_get(const ULongLongVector *v,size_t pos){ULongLongVectorResult r={false,(unsigned long long){0}};r.ok=ULongLongVector_get_into(v,pos,&r.value);return r;}
+static ULongLongVectorResult ULongLongVector_try_get(const ULongLongVector *v,size_t pos){ULongLongVectorResult r={0};r.ok=ULongLongVector_get_into(v,pos,&r.value);return r;}
 static unsigned long long ULongLongVector_get(const ULongLongVector *v,size_t pos){ULongLongVectorResult r=ULongLongVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static ULongLongVectorResult ULongLongVector_try_pop(ULongLongVector *v){ULongLongVectorResult r={false,(unsigned long long){0}};r.ok=ULongLongVector_pop_into(v,&r.value);return r;}
+static ULongLongVectorResult ULongLongVector_try_pop(ULongLongVector *v){ULongLongVectorResult r={0};r.ok=ULongLongVector_pop_into(v,&r.value);return r;}
 static unsigned long long ULongLongVector_pop(ULongLongVector *v){ULongLongVectorResult r=ULongLongVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static unsigned long long ULongLongVector_front(const ULongLongVector *v){return ULongLongVector_get(v,0);}
 static unsigned long long ULongLongVector_back(const ULongLongVector *v){if(!v->len)tb_fail("back of empty vector");return ULongLongVector_get(v,v->len-1);}

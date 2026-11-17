@@ -190,9 +190,9 @@ for(size_t i=0;i<v->len;++i)initial=combine(initial,v->data[i],context); \
 return initial; \
 } \
 typedef struct { bool ok; Type value; } CTB_JOIN(Name,Result); \
-static CTB_JOIN(Name,Result) CTB_JOIN(Name,_try_get)(const Name *v,size_t pos){CTB_JOIN(Name,Result) r={false,(Type){0}};r.ok=CTB_JOIN(Name,_get_into)(v,pos,&r.value);return r;} \
+static CTB_JOIN(Name,Result) CTB_JOIN(Name,_try_get)(const Name *v,size_t pos){CTB_JOIN(Name,Result) r={0};r.ok=CTB_JOIN(Name,_get_into)(v,pos,&r.value);return r;} \
 static Type CTB_JOIN(Name,_get)(const Name *v,size_t pos){CTB_JOIN(Name,Result) r=CTB_JOIN(Name,_try_get)(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;} \
-static CTB_JOIN(Name,Result) CTB_JOIN(Name,_try_pop)(Name *v){CTB_JOIN(Name,Result) r={false,(Type){0}};r.ok=CTB_JOIN(Name,_pop_into)(v,&r.value);return r;} \
+static CTB_JOIN(Name,Result) CTB_JOIN(Name,_try_pop)(Name *v){CTB_JOIN(Name,Result) r={0};r.ok=CTB_JOIN(Name,_pop_into)(v,&r.value);return r;} \
 static Type CTB_JOIN(Name,_pop)(Name *v){CTB_JOIN(Name,Result) r=CTB_JOIN(Name,_try_pop)(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;} \
 static Type CTB_JOIN(Name,_front)(const Name *v){return CTB_JOIN(Name,_get)(v,0);} \
 static Type CTB_JOIN(Name,_back)(const Name *v){if(!v->len)tb_fail("back of empty vector");return CTB_JOIN(Name,_get)(v,v->len-1);} \
