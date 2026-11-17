@@ -12,7 +12,26 @@ def all_header():
     modules = [name for name in BUNDLE["catalog"]["modules"] if name != "core"]
     return guarded_header(generate(modules))
 
-def initialize_folder(answer, base=None):
+SKELETONS = {
+    "blank": "",
+    "t": "int t = read_int();\n    if (t < 0) tb_fail(\"negative test count\");\n    for (int i = 0; i < t; ++i) {\n        /* TODO */\n    }",
+    "eof": "for (;;) {\n        IntReadResult r = try_read_int();\n        if (r.status == IO_EOF) break;\n        io_require(r.status);\n        int value = r.value;\n        (void)value; /* TODO */\n    }",
+    "sentinel": "for (;;) {\n        IntReadResult r = try_read_int();\n        if (r.status == IO_EOF) break;\n        io_require(r.status);\n        if (r.value == -1) break; /* change sentinel */\n        /* TODO */\n    }",
+    "operations": "int q = read_int();\n    if (q < 0) tb_fail(\"negative operation count\");\n    for (int i = 0; i < q; ++i) {\n        char operation = read_char();\n        switch (operation) {\n            /* TODO: case */\n        }\n    }",
+}
+SKELETONS["eof_pair"] = "for (;;) {\n        IntReadResult first = try_read_int();\n        if (first.status == IO_EOF) break;\n        io_require(first.status);\n        int a = first.value, b = read_int();\n        (void)a; (void)b; /* TODO */\n    }"
+for mode, read in (("eof_word", "word"), ("eof_line", "line"), ("eof_line_raw", "line_raw")):
+    SKELETONS[mode] = "for (;;) {\n        StringReadResult r = try_read_" + read + "();\n        if (r.status == IO_EOF) break;\n        io_require(r.status);\n        /* TODO: r.value */\n        string_free(&r.value);\n    }"
+
+def starter(skeleton):
+    if skeleton not in SKELETONS:
+        raise ValueError("unknown input skeleton: " + skeleton)
+    includes = '#include "ctb_io.h"\n'
+    if skeleton in ('eof_word', 'eof_line', 'eof_line_raw'):
+        includes += '#include "ctb_string.h"\n'
+    return includes + '\nint main(void) {\n    ' + SKELETONS[skeleton] + '\n    return 0;\n}\n'
+
+def initialize_folder(answer, base=None, skeleton="blank"):
     base = Path(base or Path(__file__).resolve().parent).resolve()
     version = BUNDLE["catalog"]["version"]
     if not answer.strip():
@@ -36,8 +55,9 @@ def initialize_folder(answer, base=None):
             display = subprocess.list2cmdline(command) if os.name == "nt" else shlex.join(command)
             message += "\n准备提交请运行：\n" + display
         raise ValueError(message)
-    contents = {"c_toolbox.h": all_header(), "prepare.py": BUNDLE["prepare"],
-                "main.c": BUNDLE["starter"]}
+    contents = dict(BUNDLE["headers"])
+    contents.update({"prepare.py": BUNDLE["prepare"], "main.c": starter(skeleton),
+                     "工具箱速查_v" + version + ".md": BUNDLE["manual"]})
     target.parent.mkdir(parents=True, exist_ok=True)
     target.mkdir(exist_ok=False)
     created = []
@@ -72,11 +92,16 @@ def cli(argv=None):
         return generate_cli(args)
     parser = argparse.ArgumentParser(description="C Toolbox: initialize a problem folder; Enter exports Markdown.")
     parser.add_argument("--folder", help="noninteractive initialization; empty value exports the manual")
+    parser.add_argument("--skeleton", choices=list(SKELETONS), default=None)
     options = parser.parse_args(args)
     try:
         answer = options.folder if options.folder is not None else input(
             "题目文件夹（留空导出根目录 Markdown 手册）：")
-        initialize_folder(answer)
+        choice = options.skeleton or "blank"
+        if answer.strip() and options.folder is None and not (Path(answer.strip()) if Path(answer.strip()).is_absolute() else Path(__file__).resolve().parent / answer.strip()).exists():
+            print("输入骨架：" + " / ".join(SKELETONS))
+            choice = input("骨架（回车 blank）：").strip() or "blank"
+        initialize_folder(answer, skeleton=choice)
     except (ValueError, OSError) as error:
         print(str(error), file=sys.stderr)
         return 1

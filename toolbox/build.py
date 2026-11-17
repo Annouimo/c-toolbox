@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Package source logic and content into a single standalone Python file."""
+from build_headers import headers
 import argparse
 import json
 from pathlib import Path
@@ -17,7 +18,7 @@ def build():
     template_notice = (ROOT.parent / "LICENSES/MIT-0.txt").read_text(encoding="utf-8")
     comments = "# -*- coding: utf-8 -*-\n" + "".join("# " + line + "\n" for line in notice.splitlines())
     version = catalog["version"]
-    bundle = {"catalog": catalog, "templates": templates,
+    bundle = {"headers": headers(), "catalog": catalog, "templates": templates,
               "prepare": comments + (ROOT / "src/prepare.py").read_text(encoding="utf-8").replace("@VERSION@", version),
               "starter": (ROOT / "templates/starter.c").read_text(encoding="utf-8"),
               "manual": (ROOT / "docs/quick_reference.md").read_text(encoding="utf-8").replace("@VERSION@", version)}
@@ -36,10 +37,7 @@ def main():
     content = build()
     namespace = {"__name__": "toolbox_build", "__file__": str(target)}
     exec(compile(content, str(target), "exec"), namespace)
-    header = namespace["all_header"]()
-    outputs = {target: content,
-               ROOT / ("dist/c_toolbox_all_v" + version + ".h"): header,
-               ROOT / "dist/c_toolbox.h": header}
+    outputs = {target: content}
     if args.check:
         for path, expected in outputs.items():
             if not path.exists() or path.read_text(encoding="utf-8") != expected:

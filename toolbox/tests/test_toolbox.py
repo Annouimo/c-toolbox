@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 subprocess.run([sys.executable, str(ROOT / "build.py")], check=True)
-STANDALONE = ROOT / "dist/c_toolbox_v0.5.0.py"
+STANDALONE = ROOT / "dist/c_toolbox_v0.6.0.py"
 spec = importlib.util.spec_from_file_location("toolbox", STANDALONE)
 tb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tb)
@@ -233,11 +233,11 @@ int main(void) {
 """))
 
     def test_examples(self):
-        main = (ROOT / "examples/word_count.c").read_text(encoding="utf-8")
+        main = (ROOT / "tests/fixtures/word_count.c").read_text(encoding="utf-8")
         output = self.run_c(tb.generate(["string", "counter"], main=main), "a b a\n")
         self.assertEqual(dict(line.split() for line in output.splitlines()), {"a": "2", "b": "1"})
-        main = (ROOT / "examples/student_sort.c").read_text(encoding="utf-8")
-        preamble = (ROOT / "examples/student_types.c").read_text(encoding="utf-8")
+        main = (ROOT / "tests/fixtures/student_sort.c").read_text(encoding="utf-8")
+        preamble = (ROOT / "tests/fixtures/student_types.c").read_text(encoding="utf-8")
         self.assertEqual(self.run_c(tb.generate(["vector"], ["StudentVector=Student"],
                                                 preamble, main)), "2 95\n1 80\n")
 
@@ -427,9 +427,9 @@ int main(void) {
 }"""))
 
     def test_new_examples(self):
-        main = (ROOT / "examples/remove_words.c").read_text(encoding="utf-8")
+        main = (ROOT / "tests/fixtures/remove_words.c").read_text(encoding="utf-8")
         self.assertEqual(self.run_c(tb.generate(["string"], main=main), "aabb hello\n2\nab hello\n"), " \n")
-        main = (ROOT / "examples/priority_queue.c").read_text(encoding="utf-8")
+        main = (ROOT / "tests/fixtures/priority_queue.c").read_text(encoding="utf-8")
         self.assertEqual(self.run_c(tb.generate(["heap"], main=main)), "10\n20\n30\n")
 
 
@@ -591,10 +591,10 @@ int main(void) {
         with self.assertRaises(ValueError):
             tb.generate(["io", "deque"], deques=["DoubleVector=int"])
         self.run_c(tb.generate(["io"], ["Custom=int"], main="int main(void) { return 0; }"))
-        main = (ROOT / "examples/io_lines.c").read_text(encoding="utf-8")
+        main = (ROOT / "tests/fixtures/io_lines.c").read_text(encoding="utf-8")
         self.assertEqual(self.run_c(tb.generate(["io"], main=main), "3\n\n  a  \n \t \n"),
                          "[]\n[  a  ]\n[ \t ]\n")
-        main = (ROOT / "examples/io_remove_words.c").read_text(encoding="utf-8")
+        main = (ROOT / "tests/fixtures/io_remove_words.c").read_text(encoding="utf-8")
         self.assertEqual(self.run_c(tb.generate(["io"], main=main), "aabb hello\n2 ab hello\n"), " \n")
 
 
@@ -774,7 +774,7 @@ int main(void) {
             ("word_report", ["io", "counter"], " pear  apple pear\n", "apple: 1\npear: 2\n"),
             ("number_report", ["io"], "4\n5 -2 5 0\n", "count=4 mean=2.00 median=2.50\n-2 0 5\n")
         ]:
-            main = (ROOT / ("examples/" + name + ".c")).read_text(encoding="utf-8")
+            main = (ROOT / ("tests/fixtures/" + name + ".c")).read_text(encoding="utf-8")
             self.assertNotIn("string_cstr", main)
             self.assertNotIn(".data", main)
             self.assertEqual(self.run_c(tb.generate(modules, main=main), input_text), expected)
