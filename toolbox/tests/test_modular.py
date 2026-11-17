@@ -52,7 +52,7 @@ int main(void){
     def test_scalar(self):
         with tempfile.TemporaryDirectory() as tmp:
             exe=Path(tmp)/('test.exe' if os.name=='nt' else 'test')
-            for source in ('io.c','algorithms.c'):
+            for source in ('io.c','algorithms.c','objects.c'):
                 subprocess.run([os.environ.get('CC','gcc'),'-std=c99','-I',str(ROOT/'include'),str(ROOT/'tests/modular'/source),'-lm','-o',str(exe)],check=True)
                 subprocess.run([str(exe)],check=True)
 if __name__=='__main__':unittest.main()

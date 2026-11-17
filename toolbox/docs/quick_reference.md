@@ -182,3 +182,18 @@ static int cmp_int(const void *a, const void *b) {
 | ctb_math.h | nearly_equal(a,b,abs_tol,rel_tol)、is_prime(n)、polynomial_value(coefficients,count,x)，系数按次数升序 |
 
 ctb_vec_*.h 的 get/front/back/pop 直接返回元素，非法访问或空容器退出；try_get、try_pop 返回 ok/value。旧输出指针版本暂以 _into 后缀保留。sort_by 使用对应元素类型的比较器，稳定排序；sort 保留底层 qsort 比较器接口。
+
+## 数组、前缀和、矩阵与日期
+
+| 头文件 | 常用接口 |
+| --- | --- |
+| ctb_array.h | IntVector_longest_equal_run 返回 begin/end；IntVector_max_subarray 返回 ok/sum/begin/end，空输入 ok=false；均采用半开区间，最长相等段同长时取最早 |
+| ctb_array.h | IntVector_difference 返回 LongLongVector，避免 int 差溢出；IntVector_next_permutation 原地推进，末尾重置升序并返回 false |
+| ctb_prefix_sum.h | prefix_sum_from(&v) 创建快照；prefix_sum_query(&p,begin,end) 查询；prefix_sum_free(&p) 释放；仅支持 IntVector，溢出退出 |
+| ctb_matrix.h | Matrix 为 double 元素；matrix_new(rows,cols)、get/set、clone、transpose、multiply；新对象由调用者 matrix_free |
+| ctb_matrix.h | read_matrix(rows,cols)；print_matrix(&m,digits,separator)，每行换行 |
+| ctb_date.h | date_new(y,m,d)、try_date、date_valid、date_compare、date_difference(a,b) 返回从 a 到 b 的天数 |
+| ctb_date.h | date_add_days(d,delta)、try_date_add_days；公历 1～9999 年，无时区；read_date 读取三个空白分隔整数，print_date 输出 YYYY-MM-DD |
+| ctb_date.h | TimeOfDay、time_from_seconds、time_to_seconds，时刻范围 00:00:00～23:59:59 |
+
+拥有内存的对象不可通过普通赋值当作深拷贝。PrefixSum 释放后不可查询。矩阵不承诺整数运算精确性；需要精确大整数矩阵的情形不在当前接口范围内。
