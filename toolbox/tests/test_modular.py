@@ -39,7 +39,7 @@ int main(void){
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.8.0.py'
+        script=ROOT/'dist/c_toolbox_v0.8.1.py'
         with tempfile.TemporaryDirectory() as tmp:
             cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
@@ -52,7 +52,7 @@ int main(void){
                 subprocess.run([str(exe)],input=data,text=True,check=True)
 
     def test_typed_headers_in_prepared_submission(self):
-        script = ROOT / 'dist/c_toolbox_v0.8.0.py'
+        script = ROOT / 'dist/c_toolbox_v0.8.1.py'
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp) / 'problem'
             subprocess.run([sys.executable, str(script), '--folder', str(folder)],

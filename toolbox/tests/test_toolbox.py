@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 subprocess.run([sys.executable, str(ROOT / "build.py")], check=True)
-STANDALONE = ROOT / "dist/c_toolbox_v0.8.0.py"
+STANDALONE = ROOT / "dist/c_toolbox_v0.8.1.py"
 spec = importlib.util.spec_from_file_location("toolbox", STANDALONE)
 tb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tb)
