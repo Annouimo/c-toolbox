@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_BIGINT_H
 #define CTB_BIGINT_H
-#include "string.h"
+#include "../string.h"
 /* Owned base-10 magnitude, least significant digit first. Zero initializer valid.
    sign is -1, 0 or 1. Use clone, never shallow-copy independent owners. */
 typedef struct { unsigned char *digits; size_t len; int sign; } BigInt;

@@ -1,11 +1,8 @@
-#include "ctb/vector.h"
-#include "ctb/deque.h"
-#include "ctb/heap.h"
+#include "ctb/vector/custom.h"
+#include "ctb/matrix/custom.h"
 #include <assert.h>
 typedef struct {int score, time;} Record;
 CTB_VECTOR_DEFINE(Records,Record)
-CTB_DEQUE_DEFINE(Queue,Record)
-CTB_HEAP_DEFINE(Heap,Record)
+CTB_MATRIX_DEFINE(RecordMatrix,Record)
 static int compare(const Record *a,const Record *b){return a->score!=b->score?(a->score>b->score)-(a->score<b->score):(a->time>b->time)-(a->time<b->time);}
-static int raw_compare(const void *a,const void *b){return compare(a,b);}
-int main(void){Records v=Records_new();Records_push(&v,(Record){2,1});Records_push(&v,(Record){1,2});Records_sort_by(&v,compare);assert(Records_get(&v,0).score==1);Records_free(&v);Queue q=Queue_new();Queue_push_back(&q,(Record){3,4});assert(Queue_pop_front(&q).time==4);Queue_free(&q);Heap h=Heap_new(raw_compare);Heap_push(&h,(Record){5,6});assert(Heap_pop(&h).score==5);Heap_free(&h);}
+int main(void){Records v=Records_new();Records_push(&v,(Record){2,1});Records_push(&v,(Record){1,2});Records_sort_by(&v,compare);assert(Records_get(&v,0).score==1);Records_free(&v);RecordMatrix m=RecordMatrix_new(2,3);assert(RecordMatrix_get(&m,1,2).score==0);RecordMatrix_set(&m,1,2,(Record){5,6});RecordMatrix t=RecordMatrix_transpose(&m);assert(RecordMatrix_get(&t,2,1).time==6);RecordMatrix_free(&t);RecordMatrix_free(&m);}

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_IO_H
 #define CTB_IO_H
-#include "core.h"
+#include "detail/core.h"
 #include <errno.h>
 #include <math.h>
 #include <stdarg.h>

@@ -1,6 +1,6 @@
-#include "ctb/math.h"
-#include "ctb/bits.h"
-#include "ctb/vec_int.h"
+#include "ctb/math/arithmetic.h"
+#include "ctb/math/bits.h"
+#include "ctb/vector/int.h"
 #include <assert.h>
 static int parity(const int *a,const int *b){return (*a%2)-(*b%2);}
 int main(void){

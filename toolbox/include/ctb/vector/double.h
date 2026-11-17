@@ -1,6 +1,6 @@
-#ifndef CTB_VEC_DOUBLE_H
-#define CTB_VEC_DOUBLE_H
-#include "io.h"
+#ifndef CTB_VECTOR_DOUBLE_H
+#define CTB_VECTOR_DOUBLE_H
+#include "../io.h"
 /* SPDX-License-Identifier: MIT-0 */
 /* Typed, contiguous storage. Elements are shallow copied; no element destructor. */
 typedef struct { double *data; size_t len, cap; } DoubleVector;

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_MATH_H
 #define CTB_MATH_H
-#include "core.h"
+#include "../detail/core.h"
 #include <math.h>
 typedef struct { bool ok; unsigned long long value; } UnsignedResult;
 typedef struct { bool ok; long long value; } IntegerResult;

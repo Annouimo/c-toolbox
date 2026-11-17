@@ -15,26 +15,22 @@
 | 头文件 | 能力 |
 | --- | --- |
 | ctb/io.h | 内置标量、字符、基础输出、输入流控制 |
-| ctb/string.h | String、StringList 及读写 |
-| ctb/vec_int.h / ctb/vec_ll.h / ctb/vec_double.h / ctb/vec_uint.h / ctb/vec_ull.h | 有符号、无符号整数及 double Vector 及读写 |
-| ctb/vec_size.h | IndexVector，索引存储 |
-| ctb/vector.h / ctb/deque.h / ctb/heap.h | 自定义类型容器的显式声明宏，包含本身不实例化 |
-| ctb/map.h / ctb/set.h / ctb/counter.h | 字符串键映射、集合、频次；Counter 模块同时提供 IntCounter |
-| ctb/numeric_map.h | int / long long 键，int / long long / double 值的数值哈希表；也可用宏定义其他标量组合 |
-| ctb/byte_vector.h | 可含 NUL 的原始字节数组，与文本 String 分开 |
-| ctb/bits.h | 位读写与计数 |
-| ctb/math.h | GCD/LCM、阶乘、幂、舍入、浮点比较、判素数、多项式 |
-| ctb/number.h | 进制转换、数位 |
-| ctb/sieve.h | 素数筛 |
-| ctb/array.h / ctb/prefix_sum.h | 整数向量算法、前缀和 |
-| ctb/range_difference.h | 区间加法差分数组，含 n 位置的右边界哨兵 |
+| ctb/string.h / ctb/string_list.h | 单个 String / StringList、分割、连接及批量文本读写 |
+| ctb/vector/int.h / ctb/vector/long_long.h / ctb/vector/double.h | 三种预制数值 Vector 及读写 |
+| ctb/vector/index.h | IndexVector，下标存储与算法结果 |
+| ctb/vector/custom.h / ctb/matrix/custom.h | 自定义值类型的 Vector / Matrix |
+| ctb/math/bits.h | 位读写与计数 |
+| ctb/math/arithmetic.h | GCD/LCM、阶乘、幂、舍入、浮点比较、判素数、多项式 |
+| ctb/math/number.h | 进制转换、数位 |
+| ctb/math/sieve.h | 素数筛 |
+| ctb/sequence/algorithms.h / ctb/sequence/prefix_sum.h | 整数向量算法、前缀和 |
+| ctb/sequence/range_difference.h | 区间加法差分数组，含 n 位置的右边界哨兵 |
 | ctb/search.h | 整数答案二分、数值二分求根 |
-| ctb/combination.h | 组合索引迭代 |
-| ctb/complex.h | C99 复数封装 |
-| ctb/matrix.h / ctb/matrix_double.h | double 矩阵（旧名 Matrix 与新名 DoubleMatrix） |
-| ctb/matrix_int.h / ctb/matrix_ll.h | int / long long 矩阵，含检查溢出的乘法 |
+| ctb/sequence/combination.h | 组合索引迭代 |
+| ctb/math/complex.h | C99 复数封装 |
+| ctb/matrix/int.h / ctb/matrix/long_long.h / ctb/matrix/double.h | 三种预制数值矩阵，含读写、转置、乘法 |
 | ctb/date.h | 公历日期、基础时刻 |
-| ctb/bigint.h | 有符号任意精度整数 |
+| ctb/math/bigint.h | 有符号任意精度整数 |
 
 ## 输入输出
 
@@ -78,7 +74,7 @@ StringList 默认深拷贝；push_take 移走对象并清空源对象；get/at �
 
 ## Vector、自定义容器
 
-以下 _ 表示对应类型前缀，如 IntVector_push。内置数值容器按需引入，不自动生成其他类型。内置 int/uint/ll/ull/double 向量具备稳定排序、统计和回调操作；整数 sum 返回宽类型并检查溢出。
+以下 _ 表示对应类型前缀，如 IntVector_push。内置数值容器按需引入，不自动生成其他类型。内置 int、long long、double 向量具备稳定排序、统计和回调操作；整数 sum 返回宽类型并检查溢出。
 
 | 任务 | 接口 |
 | --- | --- |
@@ -93,17 +89,7 @@ StringList 默认深拷贝；push_take 移走对象并清空源对象；get/at �
 
 find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正步长和左闭右开区间，不支持负下标。空容器 sum=0，其余统计要求非空；variance 为总体方差；median 不修改输入；整数 sum 检查每步 long long 溢出。容器元素浅拷贝，拥有字符串的序列优先 StringList。
 
-自定义类型：先定义元素类型，再 CTB_VECTOR_DEFINE(Name,Type)、CTB_DEQUE_DEFINE(Name,Type) 或 CTB_HEAP_DEFINE(Name,Type)。这些宏不生成数值统计或 values 宏；用 _from 或 push 创建。类型名必须互不冲突且不要与内置容器重复实例化。
-
-Deque 提供 push_front/back、pop_front/back、get/front/back；检查版 try_ 前缀返回 ok/value。Heap 通过 new(compare) 设置 qsort 形比较器，负数表示第一个元素优先；push、peek、pop，检查版 try_peek/try_pop。队列和堆均提供 size/empty/clear/clone/free，元素浅拷贝。
-
-## Map、Set、Counter
-
-Map 字符串键自持有，值 long long：new/set/get/get_or/contains/remove/keys/size/clear/clone/free。map_get 返回值，缺失退出；map_try_get 返回 ok/value；_s 接 String。Set 提供 add/contains/remove、union/intersection/difference/is_subset。
-
-Counter：add/get/remove/keys/from_strings；缺失值为 0，支持负计数，add 溢出返回 false 且不修改。most_common 返回 ok/key/count，key 借用；most_common_string 返回拥有资源的 String key，需释放；并列选字典序最小键。IntCounter 提供 int_counter_new/add/get/free，键为 long long，内部复用十进制字符串哈希。数值键哈希表在 ctb/numeric_map.h：IntIntMap、IntLongLongMap、IntDoubleMap、LongLongMap、LongLongIntMap、LongLongDoubleMap；也可用 CTB_NUMERIC_MAP_DEFINE(Name,KeyType,ValueType) 定义整型键与标量值。迭代顺序不保证。
-
-少数低层兼容接口以 _into 明确表达输出指针，优先使用返回值接口。
+自定义 Vector：先定义元素类型，再用 `CTB_VECTOR_DEFINE(Name, Type)`。元素按值浅拷贝。含独立内存的字符串用 StringList。
 
 ## 数学与整数
 
@@ -134,7 +120,7 @@ PrefixSum p=prefix_sum_from(&v) 保存 IntVector 快照；prefix_sum_query(&p,be
 
 ## 矩阵、复数、日期
 
-IntMatrix、LongLongMatrix 与 DoubleMatrix 按需引入；支持创建、读写、复制、转置、乘法和释放。整数矩阵乘法检查溢出。ctb/matrix.h 保留 Matrix 作为 DoubleMatrix 的兼容接口；print 函数统一接受 end。
+IntMatrix、LongLongMatrix 与 DoubleMatrix 按需引入；支持创建、读写、复制、转置、乘法和释放。整数矩阵乘法检查溢出。print 函数统一接受 end，double 版本额外接受小数位数。自定义矩阵用 `CTB_MATRIX_DEFINE(Name, Type)`，支持创建、访问、修改、复制、交换、转置与释放，元素按值浅拷贝。
 
 Complex 是 C99 double complex：complex_new(real,imaginary)、real/imaginary/magnitude、add/subtract/multiply/divide；read_complex 读实虚两数，print_complex(z,digits,end)。值类型无须释放，除零退出。
 
