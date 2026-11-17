@@ -2,7 +2,7 @@
 
 面向熟悉 C 的使用者，提供按需引入的 C99 字符串、容器和 IO。由 Annouimo/c-exam-kit 的工具箱开发分支迁入，原提交历史保留。
 
-当前分支正在进行模块化迁移，尚未发布稳定版。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
+v0.6.0 已完成模块化迁移，后续根据实际使用反馈迭代。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
 
 ## 使用
 
@@ -39,4 +39,4 @@ int main(void) {
 
 ## 发布
 
-手动运行 Prepare Toolbox release draft 工作流；检查与打包通过后，仅在 main 创建预发布草稿，附件只有版本化 Python 脚本。发布前核对跨平台 CI 和附件，随后人工发布。已存在版本拒绝覆盖，修复时增加版本号；不提供 PDF 或可执行二进制。
+合并到 main 后，自动运行 Linux GCC/Clang、macOS、Windows MinGW 和 Python 3.9 检查，构建唯一的版本化 Python 附件。新版本先创建草稿，上传并验证附件后自动发布正式 Release；失败保留草稿供检查。已发布版本自动跳过，不覆盖附件；修复时增加版本号。不提供 PDF 或可执行二进制。
