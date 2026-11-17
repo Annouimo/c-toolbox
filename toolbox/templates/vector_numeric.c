@@ -93,3 +93,6 @@ static double @NAME@_median(const @NAME@ *v) {
     if (!isfinite((double)result)) tb_fail("nonfinite median");
     return (double)result;
 }
+
+/* Exact binary lookup on ascending input. */
+static size_t @NAME@_binary_search(const @NAME@ *v,@TYPE@ key){size_t i=@NAME@_lower_bound(v,key);return i<v->len && v->data[i]==key?i:SIZE_MAX;}

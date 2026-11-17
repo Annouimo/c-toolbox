@@ -47,14 +47,14 @@ static void tb_map_rehash(Map *m, size_t cap) {
     free(m->entries);
     *m = fresh;
 }
-static bool map_get(const Map *m, const char *key, long long *out) {
+static bool map_get_into(const Map *m, const char *key, long long *out) {
     if (!m->cap) return false;
     bool found;
     size_t slot = tb_map_slot(m, key, &found);
     if (found && out) *out = m->entries[slot].value;
     return found;
 }
-static bool map_contains(const Map *m, const char *key) { return map_get(m, key, NULL); }
+static bool map_contains(const Map *m, const char *key) { return map_get_into(m, key, NULL); }
 /* true if inserted; false if an existing value was replaced. */
 static bool map_set(Map *m, const char *key, long long value) {
     if (!m->cap) tb_map_rehash(m, 16);
@@ -86,7 +86,7 @@ static bool map_remove(Map *m, const char *key) {
     return true;
 }
 /* cursor starts at 0; keys are borrowed and invalid after mutation/free. */
-static bool map_next(const Map *m, size_t *cursor, const char **key, long long *value) {
+static bool map_next_into(const Map *m, size_t *cursor, const char **key, long long *value) {
     while (*cursor < m->cap) {
         const MapEntry *e = &m->entries[(*cursor)++];
         if (e->state != 1) continue;
@@ -112,7 +112,7 @@ static Map map_clone(const Map *m) {
 static size_t map_size(const Map *m) { return m->len; }
 static long long map_get_or(const Map *m, const char *key, long long fallback) {
     long long value;
-    return map_get(m, key, &value) ? value : fallback;
+    return map_get_into(m, key, &value) ? value : fallback;
 }
 static void map_clear(Map *m) {
     for (size_t i = 0; i < m->cap; ++i)
@@ -123,8 +123,8 @@ static void map_clear(Map *m) {
 static bool map_set_s(Map *m, const String *key, long long value) {
     return map_set(m, string_cstr(key), value);
 }
-static bool map_get_s(const Map *m, const String *key, long long *out) {
-    return map_get(m, string_cstr(key), out);
+static bool map_get_s_into(const Map *m, const String *key, long long *out) {
+    return map_get_into(m, string_cstr(key), out);
 }
 static long long map_get_or_s(const Map *m, const String *key, long long fallback) {
     return map_get_or(m, string_cstr(key), fallback);
@@ -137,9 +137,20 @@ static StringList map_keys(const Map *m) {
     StringList result = string_list_new();
     size_t cursor = 0;
     const char *key;
-    while (map_next(m, &cursor, &key, NULL)) string_list_push_text(&result, key);
+    while (map_next_into(m, &cursor, &key, NULL)) string_list_push_text(&result, key);
     return result;
 }
 
+
+/* SPDX-License-Identifier: MIT-0 */
+typedef struct {bool ok;long long value;} MapResult;
+static MapResult map_try_get(const Map *m,const char *key){MapResult r={false,0};r.ok=map_get_into(m,key,&r.value);return r;}
+static long long map_get(const Map *m,const char *key){MapResult r=map_try_get(m,key);if(!r.ok)tb_fail("missing map key");return r.value;}
+static MapResult map_try_get_s(const Map *m,const String *key){return map_try_get(m,string_cstr(key));}
+static long long map_get_s(const Map *m,const String *key){return map_get(m,string_cstr(key));}
+
+/* Iteration cursor is updated in place; entry fields are returned. */
+typedef struct {bool ok;const char *key;long long value;} MapEntryView;
+static MapEntryView map_next(const Map *m,size_t *cursor){MapEntryView r={false,NULL,0};r.ok=map_next_into(m,cursor,&r.key,&r.value);return r;}
 
 #endif

@@ -261,6 +261,9 @@ static double LongLongVector_median(const LongLongVector *v) {
     return (double)result;
 }
 
+/* Exact binary lookup on ascending input. */
+static size_t LongLongVector_binary_search(const LongLongVector *v,long long key){size_t i=LongLongVector_lower_bound(v,key);return i<v->len && v->data[i]==key?i:SIZE_MAX;}
+
 /* SPDX-License-Identifier: MIT-0 */
 /* Exact sequential sum; fails before a signed overflow, including intermediate sums. */
 static long long LongLongVector_sum(const LongLongVector *v) {

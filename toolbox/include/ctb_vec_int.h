@@ -261,6 +261,9 @@ static double IntVector_median(const IntVector *v) {
     return (double)result;
 }
 
+/* Exact binary lookup on ascending input. */
+static size_t IntVector_binary_search(const IntVector *v,int key){size_t i=IntVector_lower_bound(v,key);return i<v->len && v->data[i]==key?i:SIZE_MAX;}
+
 /* SPDX-License-Identifier: MIT-0 */
 /* Exact sequential sum; fails before a signed overflow, including intermediate sums. */
 static long long IntVector_sum(const IntVector *v) {

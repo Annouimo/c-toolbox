@@ -23,4 +23,7 @@ static void print_date(Date d){if(!date_valid(d))tb_fail("invalid date");print_f
 typedef struct {int hour,minute,second;} TimeOfDay;
 static TimeOfDay time_from_seconds(int seconds){if(seconds<0 || seconds>=86400)tb_fail("time outside day");return (TimeOfDay){seconds/3600,seconds/60%60,seconds%60};}
 static int time_to_seconds(TimeOfDay t){if(t.hour<0||t.hour>23||t.minute<0||t.minute>59||t.second<0||t.second>59)tb_fail("invalid time");return t.hour*3600+t.minute*60+t.second;}
+static int time_difference(TimeOfDay a,TimeOfDay b){return time_to_seconds(b)-time_to_seconds(a);}
+static TimeOfDay read_time(void){int h=read_int(),m=read_int(),s=read_int();TimeOfDay t={h,m,s};(void)time_to_seconds(t);return t;}
+static void print_time(TimeOfDay t){(void)time_to_seconds(t);print_format("%02d:%02d:%02d",t.hour,t.minute,t.second);}
 #endif

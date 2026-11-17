@@ -108,7 +108,13 @@ static void print_ll(long long v) {print_format("%lld",v);}
 static void print_uint(unsigned int v) {print_format("%u",v);}
 static void print_ull(unsigned long long v) {print_format("%llu",v);}
 static void print_double(double v) {print_format("%.17g",v);}
-static void print_fixed(double v,int digits) {if(digits<0)tb_fail("negative precision");print_format("%.*f",digits,v);}
+static void print_fixed(double v,int digits) {
+    if(digits<0)tb_fail("negative precision");
+    int n=snprintf(NULL,0,"%.*f",digits,v);if(n<0)tb_fail("decimal formatting failed");
+    char *text=tb_resize(NULL,tb_add_size((size_t)n,1),1);snprintf(text,(size_t)n+1,"%.*f",digits,v);
+    bool zero=text[0]=='-';for(size_t i=1;zero && text[i];++i)if(text[i]!='0' && text[i]!='.')zero=false;
+    int status=fputs(text+(zero?1:0),stdout);free(text);if(status==EOF)io_require(IO_STREAM_ERROR);
+}
 static void print_text(const char *s) {if(fputs(s,stdout)==EOF)io_require(IO_STREAM_ERROR);}
 static void print_char(char c) {if(putchar((unsigned char)c)==EOF)io_require(IO_STREAM_ERROR);}
 static void print_newline(void) {print_char('\n');}

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 import os
 import random
+import shlex
 from pathlib import Path
 import subprocess
 import sys
@@ -31,14 +32,14 @@ int main(void){
             exe=folder/('test.exe' if os.name=='nt' else 'test')
             cc=os.environ.get('CC','gcc')
             def compile_file(path):
-                subprocess.run([cc,'-std=c99','-Wall','-Wextra','-Wno-unused-function','-I',tmp,str(path),'-lm','-o',str(exe)],check=True,capture_output=True)
+                subprocess.run([cc,'-std=c99',*shlex.split(os.environ.get('TOOLBOX_CFLAGS','')),'-Wall','-Wextra','-Wno-unused-function','-I',tmp,str(path),'-lm','-o',str(exe)],check=True,capture_output=True)
             compile_file(folder/'test.c')
             subprocess.run([str(exe)],input='\n  hello world  \r\n1 2 3\n  raw  \n',text=True,check=True)
             for name in headers():
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.5.0.py'
+        script=ROOT/'dist/c_toolbox_v0.6.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             cases={'blank':'','t':'0\n','eof':'1 2\n','eof_pair':'1 2\n','sentinel':'-1\n','operations':'0\n','eof_word':'a b\n','eof_line':'a\nb\n','eof_line_raw':'\n a \n'}
             for mode,data in cases.items():
@@ -47,7 +48,7 @@ int main(void){
                 self.assertFalse((folder/'c_toolbox.h').exists())
                 subprocess.run([sys.executable,str(folder/'prepare.py'),'--no-copy'],check=True,capture_output=True)
                 exe=folder/('check.exe' if os.name=='nt' else 'check')
-                subprocess.run([os.environ.get('CC','gcc'),'-std=c99',str(folder/'main.c'),'-lm','-o',str(exe)],check=True,capture_output=True)
+                subprocess.run([os.environ.get('CC','gcc'),'-std=c99',*shlex.split(os.environ.get('TOOLBOX_CFLAGS','')),str(folder/'main.c'),'-lm','-o',str(exe)],check=True,capture_output=True)
                 subprocess.run([str(exe)],input=data,text=True,check=True)
 
     def test_bigint_against_python(self):
@@ -60,7 +61,7 @@ int main(void){
             cases.append((a,b))
         with tempfile.TemporaryDirectory() as tmp:
             exe=Path(tmp)/('bigint.exe' if os.name=='nt' else 'bigint')
-            subprocess.run([os.environ.get('CC','gcc'),'-std=c99','-I',str(ROOT/'include'),str(ROOT/'tests/modular/bigint.c'),'-lm','-o',str(exe)],check=True)
+            subprocess.run([os.environ.get('CC','gcc'),'-std=c99',*shlex.split(os.environ.get('TOOLBOX_CFLAGS','')),'-I',str(ROOT/'include'),str(ROOT/'tests/modular/bigint.c'),'-lm','-o',str(exe)],check=True)
             result=subprocess.run([str(exe)],input=''.join(str(a)+' '+str(b)+'\n' for a,b in cases),capture_output=True,text=True,check=True)
             lines=result.stdout.splitlines()
             self.assertEqual(len(lines),len(cases))
@@ -72,7 +73,7 @@ int main(void){
     def test_scalar(self):
         with tempfile.TemporaryDirectory() as tmp:
             exe=Path(tmp)/('test.exe' if os.name=='nt' else 'test')
-            for source in ('io.c','algorithms.c','objects.c'):
-                subprocess.run([os.environ.get('CC','gcc'),'-std=c99','-I',str(ROOT/'include'),str(ROOT/'tests/modular'/source),'-lm','-o',str(exe)],check=True)
+            for source in ('io.c','algorithms.c','objects.c','custom.c','remaining.c'):
+                subprocess.run([os.environ.get('CC','gcc'),'-std=c99',*shlex.split(os.environ.get('TOOLBOX_CFLAGS','')),'-I',str(ROOT/'include'),str(ROOT/'tests/modular'/source),'-lm','-o',str(exe)],check=True)
                 subprocess.run([str(exe)],check=True)
 if __name__=='__main__':unittest.main()

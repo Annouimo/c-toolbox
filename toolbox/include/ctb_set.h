@@ -9,7 +9,7 @@ static bool set_contains(const Set *s, const char *key) { return map_contains(&s
 static bool set_remove(Set *s, const char *key) { return map_remove(&s->items, key); }
 static size_t set_size(const Set *s) { return s->items.len; }
 static bool set_next(const Set *s, size_t *cursor, const char **key) {
-    return map_next(&s->items, cursor, key, NULL);
+    return map_next_into(&s->items, cursor, key, NULL);
 }
 static Set set_clone(const Set *s) { Set copy = {map_clone(&s->items)}; return copy; }
 static void set_free(Set *s) { map_free(&s->items); }

@@ -261,6 +261,9 @@ static double DoubleVector_median(const DoubleVector *v) {
     return (double)result;
 }
 
+/* Exact binary lookup on ascending input. */
+static size_t DoubleVector_binary_search(const DoubleVector *v,double key){size_t i=DoubleVector_lower_bound(v,key);return i<v->len && v->data[i]==key?i:SIZE_MAX;}
+
 /* SPDX-License-Identifier: MIT-0 */
 static double DoubleVector_sum(const DoubleVector *v) {
     long double total = 0;
