@@ -21,7 +21,7 @@ def headers():
         code=typed_matrix.replace('@NAME@',name).replace('@TYPE@',ctype).replace('@READ@',reader).replace('@PRINT@',printer).replace('@SUFFIX@',suffix).replace('@MUL@',mul).replace('@CHECK@',check)
         result[f'ctb/matrix_{suffix}.h']=wrap(f'ctb/matrix_{suffix}.h',code,['io.h'])
     string_code=template('string').replace('string_list_pop(', 'string_list_pop_into(')
-    string_code+='\n'+(ROOT/'templates/string_io.c').read_text(encoding='utf-8')+'\n'+(ROOT/'templates/string_public.c').read_text(encoding='utf-8')
+    string_code+='\n'+(ROOT/'templates/string_list_argsort.c').read_text(encoding='utf-8')+'\n'+(ROOT/'templates/string_io.c').read_text(encoding='utf-8')+'\n'+(ROOT/'templates/string_public.c').read_text(encoding='utf-8')
     result['ctb/string.h']=wrap('ctb/string.h',string_code,['io.h','vec_size.h'])
     for suffix,name,ctype,reader,printer in [('int','IntVector','int','int','int'),('ll','LongLongVector','long long','ll','ll'),('double','DoubleVector','double','double','double'),('uint','UIntVector','unsigned int','uint','uint'),('ull','ULongLongVector','unsigned long long','ull','ull'),('size','IndexVector','size_t','ull','ull')]:
         code=template('vector')

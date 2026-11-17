@@ -2,7 +2,7 @@
 
 面向熟悉 C 的使用者，提供按需引入的 C99 字符串、容器和 IO。由 Annouimo/c-exam-kit 的工具箱开发分支迁入，原提交历史保留。
 
-v0.7.0 开发分支正在整理头文件目录、统一输出接口并扩展通用容器。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
+v0.7.0 整理了头文件目录和输出接口，并扩展了通用容器。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
 
 ## 使用
 
