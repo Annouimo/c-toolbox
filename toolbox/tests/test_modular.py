@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 import os
+import random
 from pathlib import Path
 import subprocess
 import sys
@@ -48,6 +49,25 @@ int main(void){
                 exe=folder/('check.exe' if os.name=='nt' else 'check')
                 subprocess.run([os.environ.get('CC','gcc'),'-std=c99',str(folder/'main.c'),'-lm','-o',str(exe)],check=True,capture_output=True)
                 subprocess.run([str(exe)],input=data,text=True,check=True)
+
+    def test_bigint_against_python(self):
+        randomizer=random.Random(70117)
+        cases=[(0,1),(1,-1),(-1,1),(10**200-1,10**100+1),(-(10**150),7)]
+        for _ in range(300):
+            a=randomizer.randrange(-10**randomizer.randrange(1,121),10**randomizer.randrange(1,121))
+            b=0
+            while not b:b=randomizer.randrange(-10**randomizer.randrange(1,81),10**randomizer.randrange(1,81))
+            cases.append((a,b))
+        with tempfile.TemporaryDirectory() as tmp:
+            exe=Path(tmp)/('bigint.exe' if os.name=='nt' else 'bigint')
+            subprocess.run([os.environ.get('CC','gcc'),'-std=c99','-I',str(ROOT/'include'),str(ROOT/'tests/modular/bigint.c'),'-lm','-o',str(exe)],check=True)
+            result=subprocess.run([str(exe)],input=''.join(str(a)+' '+str(b)+'\n' for a,b in cases),capture_output=True,text=True,check=True)
+            lines=result.stdout.splitlines()
+            self.assertEqual(len(lines),len(cases))
+            for (a,b),line in zip(cases,lines):
+                q=abs(a)//abs(b)
+                if (a<0)!=(b<0):q=-q
+                self.assertEqual(list(map(int,line.split())),[a+b,a-b,a*b,q,a-q*b])
 
     def test_scalar(self):
         with tempfile.TemporaryDirectory() as tmp:

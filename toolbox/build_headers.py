@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parent
 
 def headers():
     catalog=json.loads((ROOT/'catalog.json').read_text())['modules']
-    result={p.name:p.read_text() for p in (ROOT/'include').glob('*.h') if p.name in ('ctb_core.h','ctb_io.h','ctb_math.h','ctb_bits.h','ctb_array.h','ctb_prefix_sum.h','ctb_matrix.h','ctb_date.h')}
+    result={p.name:p.read_text() for p in (ROOT/'include').glob('*.h') if p.name in ('ctb_core.h','ctb_io.h','ctb_math.h','ctb_bits.h','ctb_array.h','ctb_prefix_sum.h','ctb_matrix.h','ctb_date.h','ctb_bigint.h')}
     def wrap(name, code, dependencies):
         guard=name.replace('.','_').upper()
         return '#ifndef '+guard+'\n#define '+guard+'\n'+''.join('#include "'+d+'"\n' for d in dependencies)+code+'\n#endif\n'

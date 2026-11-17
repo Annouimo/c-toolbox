@@ -197,3 +197,21 @@ ctb_vec_*.h 的 get/front/back/pop 直接返回元素，非法访问或空容器
 | ctb_date.h | TimeOfDay、time_from_seconds、time_to_seconds，时刻范围 00:00:00～23:59:59 |
 
 拥有内存的对象不可通过普通赋值当作深拷贝。PrefixSum 释放后不可查询。矩阵不承诺整数运算精确性；需要精确大整数矩阵的情形不在当前接口范围内。
+
+## 大整数
+
+引入 `ctb_bigint.h`。BigInt 保存任意长度十进制有符号整数（受内存限制），零初始化有效。算术返回新对象，输入保持不变，调用者逐个 bigint_free；普通赋值不产生独立副本。
+
+| 任务 | 接口 |
+| --- | --- |
+| 创建 | bigint_new()、bigint_from("-123")、bigint_from_ll(n)；try_bigint_from 返回 ok/value |
+| 复制、比较 | bigint_clone(&a)、bigint_compare(&a,&b)、bigint_negate(&a) |
+| 四则运算 | bigint_add/subtract/multiply/divide(&a,&b) |
+| 商和余数 | bigint_divmod(&a,&b) 返回 quotient/remainder，两者都要释放；bigint_modulo 单独返回余数 |
+| 小整数 | bigint_multiply_small(&a,n)、bigint_divide_small(&a,n)，后者返回商余数，逐位除法 |
+| 阶乘 | bigint_factorial(n)，参数 unsigned int |
+| 读写 | read_bigint()、try_read_bigint()、print_bigint(&a)、bigint_to_string(&a) |
+
+除法向零截断，余数与被除数同号，满足 a = quotient*b + remainder。除零退出。解析接受一个可选正负号和至少一个十进制数字，不接受内嵌空白；零统一为无符号零。输入检查版返回 IOStatus/value，EOF 不退出；解析检查版返回 bool ok/value。
+
+当前实现采用十进制逐位学校算法，适合常规习题；乘除法不是面向百万位数据的高性能算法。
