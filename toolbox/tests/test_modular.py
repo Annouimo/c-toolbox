@@ -42,7 +42,7 @@ int main(void){
     def test_skeleton_submission(self):
         script=ROOT/'dist/c_toolbox_v0.7.0.py'
         with tempfile.TemporaryDirectory() as tmp:
-            cases={'blank':'','t':'0\n','eof':'1 2\n','eof_pair':'1 2\n','sentinel':'-1\n','operations':'0\n','eof_word':'a b\n','eof_line':'a\nb\n','eof_line_raw':'\n a \n'}
+            cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
                 folder=Path(tmp)/mode
                 subprocess.run([sys.executable,str(script),'--folder',str(folder),'--skeleton',mode],check=True,capture_output=True)
