@@ -15,7 +15,8 @@ static RangeDifference range_difference_from_ints(const IntVector *values) {
     return r;
 }
 static bool range_difference_add(RangeDifference *r,size_t first,size_t last,long long value) {
-    if(first>last||last>r->len)return false;if(first==last||!value)return true;
+    if(first>last||last>r->len)return false;
+    if(first==last||!value)return true;
     long long a=r->diff.data[first],b=r->diff.data[last];
     if((value>0&&a>LLONG_MAX-value)||(value<0&&a<LLONG_MIN-value))return false;
     if((value<0&&b>LLONG_MAX+value)||(value>0&&b<LLONG_MIN+value))return false;

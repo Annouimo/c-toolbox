@@ -12,13 +12,16 @@ static unsigned int integer_digit_sum(long long value,unsigned int base){if(base
 typedef struct { bool exists; unsigned int value; } DigitResult;
 /* Position zero is the least-significant digit. */
 static DigitResult integer_digit_at(long long value,unsigned int base,unsigned int position) {
-    if(base<2||base>36)tb_fail("invalid base");unsigned long long n=tb_magnitude(value);
+    if(base<2||base>36)tb_fail("invalid base");
+    unsigned long long n=tb_magnitude(value);
     if(position>=integer_digit_count(value,base))return (DigitResult){false,0};
-    while(position--)n/=base;return (DigitResult){true,(unsigned int)(n%base)};
+    while(position--)n/=base;
+    return (DigitResult){true,(unsigned int)(n%base)};
 }
 /* Reverses the magnitude and preserves the sign; failure reports signed overflow. */
 static IntegerResult try_integer_reverse_digits(long long value,unsigned int base) {
-    if(base<2||base>36)return (IntegerResult){false,0};unsigned long long n=tb_magnitude(value),result=0;
+    if(base<2||base>36)return (IntegerResult){false,0};
+    unsigned long long n=tb_magnitude(value),result=0;
     unsigned long long limit=value<0?(unsigned long long)LLONG_MAX+1:(unsigned long long)LLONG_MAX;
     do { unsigned int digit=(unsigned int)(n%base);n/=base;if(result>(limit-digit)/base)return (IntegerResult){false,0};result=result*base+digit; } while(n);
     long long signed_result=value<0?(result==(unsigned long long)LLONG_MAX+1?LLONG_MIN:-(long long)result):(long long)result;

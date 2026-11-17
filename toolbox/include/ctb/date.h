@@ -10,8 +10,10 @@ typedef struct {long long seconds;} Duration;
 typedef struct {long long hours;int minutes,seconds;} DurationParts;
 static Duration duration_from_hms(long long hours,int minutes,int seconds){
     if(hours<0||minutes<0||minutes>59||seconds<0||seconds>59)tb_fail("invalid duration");
-    if(hours>LLONG_MAX/3600)tb_fail("duration overflow");long long total=hours*3600;
-    if(total>LLONG_MAX-minutes*60LL-seconds)tb_fail("duration overflow");return (Duration){total};
+    if(hours>LLONG_MAX/3600)tb_fail("duration overflow");
+    long long total=hours*3600;
+    if(total>LLONG_MAX-minutes*60LL-seconds)tb_fail("duration overflow");
+    return (Duration){total};
 }
 static DurationParts duration_to_hms(Duration d){if(d.seconds<0)tb_fail("negative duration");return (DurationParts){d.seconds/3600,(int)(d.seconds/60%60),(int)(d.seconds%60)};}
 static Duration duration_add(Duration a,Duration b){if(a.seconds<0||b.seconds<0||a.seconds>LLONG_MAX-b.seconds)tb_fail("duration overflow");return (Duration){a.seconds+b.seconds};}

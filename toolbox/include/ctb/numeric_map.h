@@ -12,11 +12,15 @@ typedef struct { KeyType *keys; ValueType *values; unsigned char *state; size_t 
 typedef struct { bool found; ValueType value; } Name##Result; \
 static size_t Name##_slot(const Name *m,KeyType key,bool *found) { \
     size_t mask=m->cap-1,pos=(size_t)ctb_numeric_map_hash((uint64_t)key)&mask,first=SIZE_MAX; \
-    for(;;) { if(!m->state[pos]) { *found=false;return first==SIZE_MAX?pos:first; } \
+    for(;;) { \
+        if(!m->state[pos]) { *found=false;return first==SIZE_MAX?pos:first; } \
         if(m->state[pos]==2) { if(first==SIZE_MAX)first=pos; } \
-        else if(m->keys[pos]==key) { *found=true;return pos; } pos=(pos+1)&mask; } } \
+        else if(m->keys[pos]==key) { *found=true;return pos; } \
+        pos=(pos+1)&mask; \
+    } } \
 static void Name##_reserve(Name *m,size_t needed) { \
-    if(m->cap && needed<m->cap-m->cap/3)return; size_t cap=m->cap?m->cap:8; \
+    if(m->cap && needed<m->cap-m->cap/3)return; \
+    size_t cap=m->cap?m->cap:8; \
     while(needed>=cap-cap/3) { if(cap>SIZE_MAX/2)tb_fail("map size overflow");cap*=2; } \
     Name next={0};next.cap=cap;next.keys=tb_resize(NULL,cap,sizeof *next.keys); \
     next.values=tb_resize(NULL,cap,sizeof *next.values);next.state=tb_resize(NULL,cap,sizeof *next.state); \
@@ -34,7 +38,8 @@ static Name##Result Name##_get(const Name *m,KeyType key) { \
     if(found) { r.found=true;r.value=m->values[p]; }return r; } \
 static bool Name##_contains(const Name *m,KeyType key) { return Name##_get(m,key).found; } \
 static bool Name##_remove(Name *m,KeyType key) { if(!m->cap)return false;bool found=false;size_t p=Name##_slot(m,key,&found); \
-    if(!found)return false;m->state[p]=2;--m->len;return true; } \
+    if(!found)return false; \
+    m->state[p]=2;--m->len;return true; } \
 static void Name##_free(Name *m) { free(m->keys);free(m->values);free(m->state);*m=(Name){0}; }
 CTB_NUMERIC_MAP_DEFINE(IntLongLongMap,int,long long)
 CTB_NUMERIC_MAP_DEFINE(IntIntMap,int,int)
