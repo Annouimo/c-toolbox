@@ -1,6 +1,7 @@
 #ifndef CTB_STRING_H
 #define CTB_STRING_H
-#include "ctb_io.h"
+#include "io.h"
+#include "vec_size.h"
 /* SPDX-License-Identifier: MIT-0 */
 /* Owns data. Zero initialization is valid. Positions and lengths count bytes. */
 typedef struct { char *data; size_t len, cap; } String;
@@ -24,6 +25,7 @@ static String string_from(const char *text) {
 }
 static String string_clone(const String *s) { return string_from(string_cstr(s)); }
 static void string_free(String *s) { free(s->data); *s = (String){0}; }
+static void string_swap(String *a,String *b) { String value=*a;*a=*b;*b=value; }
 /* text may refer to s.data; snapshot before reserve/memmove. */
 static bool string_insert(String *s, size_t pos, const char *text) {
     if (pos > s->len) return false;
@@ -130,6 +132,40 @@ static void string_list_free(StringList *list) {
 
 
 /* SPDX-License-Identifier: MIT-0 */
+static String string_slice_step(const String *s,size_t first,size_t last,size_t step) {
+    if(!step || first>last || last>s->len)tb_fail("invalid string slice");
+    String result=string_new();
+    size_t count=first==last?0:1+(last-first-1)/step;
+    string_reserve(&result,count);
+    for(size_t i=first;i<last;) { string_push(&result,s->data[i]);if(step>last-1-i)break;i+=step; }
+    return result;
+}
+static String string_repeat_char(char ch,size_t count) {
+    if(!ch && count)tb_fail("NUL is not a text character");String result=string_new();
+    string_reserve(&result,count);if(count)memset(result.data,ch,count);result.data[count]='\0';result.len=count;return result;
+}
+static String string_repeat(const String *s,size_t count) {
+    if(count && s->len>SIZE_MAX/count)tb_fail("string size overflow");
+    size_t length=s->len*count;String result=string_new();string_reserve(&result,length);
+    for(size_t i=0;i<count;++i)if(s->len)memcpy(result.data+i*s->len,string_cstr(s),s->len);
+    result.data[length]='\0';result.len=length;return result;
+}
+static void string_append_repeat(String *s,const String *part,size_t count) {
+    String repeated=string_repeat(part,count);string_append(s,string_cstr(&repeated));string_free(&repeated);
+}
+static void string_append_slice(String *s,const String *source,size_t first,size_t count) {
+    String slice=string_slice(source,first,count);string_append(s,string_cstr(&slice));string_free(&slice);
+}
+static void string_pad_left(String *s,size_t width,char fill) {
+    if(!fill)tb_fail("NUL is not a text character");if(width<=s->len)return;
+    size_t padding=width-s->len;string_reserve(s,width);memmove(s->data+padding,s->data,s->len+1);
+    memset(s->data,fill,padding);s->len=width;
+}
+static void string_pad_right(String *s,size_t width,char fill) {
+    if(!fill)tb_fail("NUL is not a text character");if(width<=s->len)return;
+    size_t padding=width-s->len;string_reserve(s,width);memset(s->data+s->len,fill,padding);
+    s->len=width;s->data[width]='\0';
+}
 static void string_clear(String *s) {
     s->len = 0;
     if (s->data) s->data[0] = '\0';
@@ -349,9 +385,50 @@ static bool string_list_contains(const StringList *list, const String *value) {
 static int tb_string_compare(const void *a, const void *b) {
     return strcmp(string_cstr((const String *)a), string_cstr((const String *)b));
 }
-static void string_list_sort_by(StringList *list, int (*compare)(const void *, const void *)) {
-    if (list->len > 1) qsort(list->data, list->len, sizeof *list->data, compare);
+static void tb_string_list_merge_sort(String *data,String *scratch,size_t n,
+                                      int (*compare)(const void *,const void *)) {
+    if(n<2)return;
+    size_t mid=n/2;
+    tb_string_list_merge_sort(data,scratch,mid,compare);
+    tb_string_list_merge_sort(data+mid,scratch+mid,n-mid,compare);
+    size_t i=0,j=mid,k=0;
+    while(i<mid && j<n) {
+        if(compare(&data[i],&data[j])<=0)scratch[k++]=data[i++];
+        else scratch[k++]=data[j++];
+    }
+    while(i<mid)scratch[k++]=data[i++];
+    while(j<n)scratch[k++]=data[j++];
+    memcpy(data,scratch,n*sizeof *data);
 }
+static void string_list_sort_by(StringList *list, int (*compare)(const void *, const void *)) {
+    if(!compare)tb_fail("null comparator");
+    if(list->len<2)return;
+    String *scratch=tb_resize(NULL,list->len,sizeof *scratch);
+    tb_string_list_merge_sort(list->data,scratch,list->len,compare);
+    free(scratch);
+}
+typedef struct { const StringList *list; int (*compare)(const void *,const void *); } StringSortContext;
+static int tb_string_index_compare(const StringSortContext *ctx,size_t a,size_t b) {
+    int order=ctx->compare(&ctx->list->data[a],&ctx->list->data[b]);
+    return order?order:(a<b?-1:a>b?1:0);
+}
+static void tb_string_index_merge_sort(size_t *data,size_t *scratch,size_t n,const StringSortContext *ctx) {
+    if(n<2)return;size_t mid=n/2;
+    tb_string_index_merge_sort(data,scratch,mid,ctx);tb_string_index_merge_sort(data+mid,scratch+mid,n-mid,ctx);
+    size_t i=0,j=mid,k=0;
+    while(i<mid && j<n)scratch[k++]=tb_string_index_compare(ctx,data[i],data[j])<=0?data[i++]:data[j++];
+    while(i<mid)scratch[k++]=data[i++];while(j<n)scratch[k++]=data[j++];
+    memcpy(data,scratch,n*sizeof *data);
+}
+static IndexVector string_list_argsort_by(const StringList *list,int (*compare)(const void *,const void *)) {
+    if(!compare)tb_fail("null comparator");
+    IndexVector indices=IndexVector_new();IndexVector_reserve(&indices,list->len);
+    for(size_t i=0;i<list->len;++i)IndexVector_push(&indices,i);
+    if(indices.len>1) { size_t *scratch=tb_resize(NULL,indices.len,sizeof *scratch);StringSortContext ctx={list,compare};
+        tb_string_index_merge_sort(indices.data,scratch,indices.len,&ctx);free(scratch); }
+    return indices;
+}
+static IndexVector string_list_argsort(const StringList *list) { return string_list_argsort_by(list,tb_string_compare); }
 static void string_list_sort(StringList *list) { string_list_sort_by(list, tb_string_compare); }
 static void string_list_reverse(StringList *list) {
     for (size_t i = 0; i < list->len / 2; ++i) {
@@ -360,6 +437,7 @@ static void string_list_reverse(StringList *list) {
         list->data[list->len - i - 1] = value;
     }
 }
+static void string_list_swap(StringList *a,StringList *b) { StringList value=*a;*a=*b;*b=value; }
 /* Adjacent equals only; sort first for global deduplication. */
 static void string_list_unique_sorted(StringList *list) {
     size_t written = 0;
@@ -463,6 +541,21 @@ static String string_join_s(const StringList *list, const String *separator) {
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { IOStatus status; String value; } StringReadResult;
+typedef struct { bool ok; int value; } StringIntResult;
+typedef struct { bool ok; long long value; } StringLongLongResult;
+typedef struct { bool ok; double value; } StringDoubleResult;
+static StringIntResult string_parse_int(const String *s) {
+    StringIntResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
+    if(errno==ERANGE || end==string_cstr(s) || *end || x<INT_MIN || x>INT_MAX)return r;r.ok=true;r.value=(int)x;return r;
+}
+static StringLongLongResult string_parse_ll(const String *s) {
+    StringLongLongResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
+    if(errno==ERANGE || end==string_cstr(s) || *end)return r;r.ok=true;r.value=x;return r;
+}
+static StringDoubleResult string_parse_double(const String *s) {
+    StringDoubleResult r={false,0};if(!s->len)return r;char *end;errno=0;double x=strtod(string_cstr(s),&end);
+    if(errno==ERANGE || end==string_cstr(s) || *end || !isfinite(x))return r;r.ok=true;r.value=x;return r;
+}
 static StringReadResult io_try_read_word(IOReader *r) {
     StringReadResult result={IO_OK,{0}};char *token=tb_io_token(r,&result.status);
     if(result.status==IO_OK)result.value=string_from(token);
@@ -492,7 +585,7 @@ static String read_word(void){StringReadResult r=try_read_word();io_require(r.st
 static String read_line(void){StringReadResult r=try_read_line();io_require(r.status);return r.value;}
 static String read_line_raw(void){StringReadResult r=try_read_line_raw();io_require(r.status);return r.value;}
 static String read_rest(void){return read_line_raw();}
-static void print_string(const String *s){print_text(string_cstr(s));}
+static void print_string(const String *s,const char *end){print_text(string_cstr(s),end);}
 static StringList read_words(size_t count){StringList result={0};for(size_t i=0;i<count;++i){String s=read_word();string_list_push_take(&result,&s);}return result;}
 
 /* After a token, reject extra nonspace data before crossing into next line. */
@@ -512,11 +605,17 @@ static String read_next_line_raw(void){StringReadResult r=try_read_next_line_raw
 static String read_next_line(void){StringReadResult r=try_read_next_line();io_require(r.status);return r.value;}
 
 /* SPDX-License-Identifier: MIT-0 */
+/* Reapply each deletion pattern until reaching a fixed point across the set. */
+static size_t string_remove_patterns(String *text,const StringList *patterns) {
+    size_t total=0,pass;
+    do { pass=0;for(size_t i=0;i<patterns->len;++i)pass+=string_remove_repeated(text,string_cstr(&patterns->data[i]));total+=pass; } while(pass);
+    return total;
+}
 typedef struct {bool ok;String value;} StringResult;
 static StringResult string_list_try_pop(StringList *list){StringResult r={false,{0}};r.ok=string_list_pop_into(list,&r.value);return r;}
 static String string_list_pop(StringList *list){StringResult r=string_list_try_pop(list);if(!r.ok)tb_fail("pop of empty string list");return r.value;}
 typedef struct {size_t begin,end;} StringRun;
 static StringRun string_longest_char_run(const String *s,char target){StringRun best={0,0};size_t start=0;for(size_t i=0;i<s->len;++i){if(s->data[i]!=target)start=i+1;else if(i+1-start>best.end-best.begin)best=(StringRun){start,i+1};}return best;}
-static void print_strings(const StringList *words,const char *separator,const char *end){for(size_t i=0;i<words->len;++i){if(i)print_text(separator);print_string(&words->data[i]);}print_text(end);}
+static void print_strings(const StringList *words,const char *separator,const char *end){for(size_t i=0;i<words->len;++i){if(i)print_text(separator,"");print_string(&words->data[i],"");}print_text("",end);}
 
 #endif

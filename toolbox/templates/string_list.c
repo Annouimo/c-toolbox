@@ -84,9 +84,50 @@ static bool string_list_contains(const StringList *list, const String *value) {
 static int tb_string_compare(const void *a, const void *b) {
     return strcmp(string_cstr((const String *)a), string_cstr((const String *)b));
 }
-static void string_list_sort_by(StringList *list, int (*compare)(const void *, const void *)) {
-    if (list->len > 1) qsort(list->data, list->len, sizeof *list->data, compare);
+static void tb_string_list_merge_sort(String *data,String *scratch,size_t n,
+                                      int (*compare)(const void *,const void *)) {
+    if(n<2)return;
+    size_t mid=n/2;
+    tb_string_list_merge_sort(data,scratch,mid,compare);
+    tb_string_list_merge_sort(data+mid,scratch+mid,n-mid,compare);
+    size_t i=0,j=mid,k=0;
+    while(i<mid && j<n) {
+        if(compare(&data[i],&data[j])<=0)scratch[k++]=data[i++];
+        else scratch[k++]=data[j++];
+    }
+    while(i<mid)scratch[k++]=data[i++];
+    while(j<n)scratch[k++]=data[j++];
+    memcpy(data,scratch,n*sizeof *data);
 }
+static void string_list_sort_by(StringList *list, int (*compare)(const void *, const void *)) {
+    if(!compare)tb_fail("null comparator");
+    if(list->len<2)return;
+    String *scratch=tb_resize(NULL,list->len,sizeof *scratch);
+    tb_string_list_merge_sort(list->data,scratch,list->len,compare);
+    free(scratch);
+}
+typedef struct { const StringList *list; int (*compare)(const void *,const void *); } StringSortContext;
+static int tb_string_index_compare(const StringSortContext *ctx,size_t a,size_t b) {
+    int order=ctx->compare(&ctx->list->data[a],&ctx->list->data[b]);
+    return order?order:(a<b?-1:a>b?1:0);
+}
+static void tb_string_index_merge_sort(size_t *data,size_t *scratch,size_t n,const StringSortContext *ctx) {
+    if(n<2)return;size_t mid=n/2;
+    tb_string_index_merge_sort(data,scratch,mid,ctx);tb_string_index_merge_sort(data+mid,scratch+mid,n-mid,ctx);
+    size_t i=0,j=mid,k=0;
+    while(i<mid && j<n)scratch[k++]=tb_string_index_compare(ctx,data[i],data[j])<=0?data[i++]:data[j++];
+    while(i<mid)scratch[k++]=data[i++];while(j<n)scratch[k++]=data[j++];
+    memcpy(data,scratch,n*sizeof *data);
+}
+static IndexVector string_list_argsort_by(const StringList *list,int (*compare)(const void *,const void *)) {
+    if(!compare)tb_fail("null comparator");
+    IndexVector indices=IndexVector_new();IndexVector_reserve(&indices,list->len);
+    for(size_t i=0;i<list->len;++i)IndexVector_push(&indices,i);
+    if(indices.len>1) { size_t *scratch=tb_resize(NULL,indices.len,sizeof *scratch);StringSortContext ctx={list,compare};
+        tb_string_index_merge_sort(indices.data,scratch,indices.len,&ctx);free(scratch); }
+    return indices;
+}
+static IndexVector string_list_argsort(const StringList *list) { return string_list_argsort_by(list,tb_string_compare); }
 static void string_list_sort(StringList *list) { string_list_sort_by(list, tb_string_compare); }
 static void string_list_reverse(StringList *list) {
     for (size_t i = 0; i < list->len / 2; ++i) {
@@ -95,6 +136,7 @@ static void string_list_reverse(StringList *list) {
         list->data[list->len - i - 1] = value;
     }
 }
+static void string_list_swap(StringList *a,StringList *b) { StringList value=*a;*a=*b;*b=value; }
 /* Adjacent equals only; sort first for global deduplication. */
 static void string_list_unique_sorted(StringList *list) {
     size_t written = 0;

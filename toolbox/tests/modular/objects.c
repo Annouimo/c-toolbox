@@ -1,6 +1,6 @@
-#include "ctb_prefix_sum.h"
-#include "ctb_matrix.h"
-#include "ctb_date.h"
+#include "ctb/prefix_sum.h"
+#include "ctb/matrix.h"
+#include "ctb/date.h"
 #include <assert.h>
 int main(void){
  IntVector v=IntVector_values(-2,3,3,-1,4,-9);IndexRange r=IntVector_longest_equal_run(&v);assert(r.begin==1 && r.end==3);

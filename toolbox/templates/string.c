@@ -21,6 +21,7 @@ static String string_from(const char *text) {
 }
 static String string_clone(const String *s) { return string_from(string_cstr(s)); }
 static void string_free(String *s) { free(s->data); *s = (String){0}; }
+static void string_swap(String *a,String *b) { String value=*a;*a=*b;*b=value; }
 /* text may refer to s.data; snapshot before reserve/memmove. */
 static bool string_insert(String *s, size_t pos, const char *text) {
     if (pos > s->len) return false;

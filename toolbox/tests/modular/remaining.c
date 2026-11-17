@@ -1,10 +1,10 @@
-#include "ctb_number.h"
-#include "ctb_sieve.h"
-#include "ctb_search.h"
-#include "ctb_complex.h"
-#include "ctb_combination.h"
-#include "ctb_counter.h"
-#include "ctb_array.h"
+#include "ctb/number.h"
+#include "ctb/sieve.h"
+#include "ctb/search.h"
+#include "ctb/complex.h"
+#include "ctb/combination.h"
+#include "ctb/counter.h"
+#include "ctb/array.h"
 #include <assert.h>
 static bool positive(long long n){return n>=0;}
 static double square_minus_two(double x){return x*x-2;}
@@ -22,6 +22,6 @@ int main(void){
  Counter counter=counter_new();assert(!counter_most_common(&counter).ok);counter_add(&counter,"x",4);CounterStringEntry entry=counter_most_common_string(&counter);assert(entry.ok && entry.count==4);counter_free(&counter);assert(string_equal_text(&entry.key,"x"));string_free(&entry.key);
  StringList list={0};string_list_push_text(&list,"x");String popped=string_list_pop(&list);assert(string_equal_text(&popped,"x"));string_free(&popped);string_list_free(&list);
  IntVector v=IntVector_values(8,2,8,1);IndexVector indices=IntVector_argsort(&v);assert(indices.data[0]==3 && indices.data[2]==0 && indices.data[3]==2);IndexVector_free(&indices);IntDiscretization d=IntVector_discretize(&v);assert(d.values.len==3 && d.ranks.data[0]==2 && d.ranks.data[1]==1);int_discretization_free(&d);IntVector_free(&v);
- print_fixed(-0.0001,2);print_newline();
+ print_fixed(-0.0001,2,"\n");
  return 0;
 }

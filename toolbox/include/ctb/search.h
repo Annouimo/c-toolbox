@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_SEARCH_H
 #define CTB_SEARCH_H
-#include "ctb_math.h"
+#include "math.h"
 /* Inclusive bounds; predicate must be false then true. */
 static IntegerResult integer_first_true(long long begin,long long end,bool (*predicate)(long long)){if(!predicate||begin>end)tb_fail("invalid search");while(begin<end){unsigned long long width=(unsigned long long)end-(unsigned long long)begin;long long mid=begin+(long long)(width/2);if(predicate(mid))end=mid;else begin=mid+1;}return (IntegerResult){predicate(begin),begin};}
 typedef struct {bool ok;double value;} RootResult;

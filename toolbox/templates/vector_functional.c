@@ -15,11 +15,23 @@ static @NAME@ @NAME@_filter(const @NAME@ *v, bool (*predicate)(@TYPE@)) {
         if (predicate(v->data[i])) @NAME@_push(&result, v->data[i]);
     return result;
 }
+static @NAME@ @NAME@_filter_ctx(const @NAME@ *v, bool (*predicate)(@TYPE@,void *),void *context) {
+    if (!predicate) tb_fail("missing predicate");
+    @NAME@ result=@NAME@_new();
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))@NAME@_push(&result,v->data[i]);
+    return result;
+}
 static @NAME@ @NAME@_map(const @NAME@ *v, @TYPE@ (*transform)(@TYPE@)) {
     if (!transform) tb_fail("missing transform");
     @NAME@ result = @NAME@_new();
     @NAME@_reserve(&result, v->len);
     for (size_t i = 0; i < v->len; ++i) @NAME@_push(&result, transform(v->data[i]));
+    return result;
+}
+static @NAME@ @NAME@_map_ctx(const @NAME@ *v,@TYPE@ (*transform)(@TYPE@,void *),void *context) {
+    if(!transform)tb_fail("missing transform");
+    @NAME@ result=@NAME@_new();@NAME@_reserve(&result,v->len);
+    for(size_t i=0;i<v->len;++i)@NAME@_push(&result,transform(v->data[i],context));
     return result;
 }
 static void @NAME@_map_inplace(@NAME@ *v, @TYPE@ (*transform)(@TYPE@)) {
@@ -29,6 +41,11 @@ static void @NAME@_map_inplace(@NAME@ *v, @TYPE@ (*transform)(@TYPE@)) {
 static size_t @NAME@_find_if(const @NAME@ *v, bool (*predicate)(@TYPE@)) {
     if (!predicate) tb_fail("missing predicate");
     for (size_t i = 0; i < v->len; ++i) if (predicate(v->data[i])) return i;
+    return SIZE_MAX;
+}
+static size_t @NAME@_find_if_ctx(const @NAME@ *v,bool (*predicate)(@TYPE@,void *),void *context) {
+    if(!predicate)tb_fail("missing predicate");
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))return i;
     return SIZE_MAX;
 }
 static size_t @NAME@_count_if(const @NAME@ *v, bool (*predicate)(@TYPE@)) {
@@ -51,4 +68,9 @@ static @TYPE@ @NAME@_reduce(const @NAME@ *v, @TYPE@ initial,
     @TYPE@ result = initial;
     for (size_t i = 0; i < v->len; ++i) result = combine(result, v->data[i]);
     return result;
+}
+static @TYPE@ @NAME@_reduce_ctx(const @NAME@ *v,@TYPE@ initial,@TYPE@ (*combine)(@TYPE@,@TYPE@,void *),void *context) {
+    if(!combine)tb_fail("missing reducer");
+    for(size_t i=0;i<v->len;++i)initial=combine(initial,v->data[i],context);
+    return initial;
 }

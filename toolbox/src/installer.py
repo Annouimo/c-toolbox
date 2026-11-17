@@ -26,9 +26,9 @@ for mode, read in (("eof_word", "word"), ("eof_line", "line"), ("eof_line_raw", 
 def starter(skeleton):
     if skeleton not in SKELETONS:
         raise ValueError("unknown input skeleton: " + skeleton)
-    includes = '#include "ctb_io.h"\n'
+    includes = '#include "ctb/io.h"\n'
     if skeleton in ('eof_word', 'eof_line', 'eof_line_raw'):
-        includes += '#include "ctb_string.h"\n'
+        includes += '#include "ctb/string.h"\n'
     return includes + '\nint main(void) {\n    ' + SKELETONS[skeleton] + '\n    return 0;\n}\n'
 
 def initialize_folder(answer, base=None, skeleton="blank"):
@@ -56,20 +56,23 @@ def initialize_folder(answer, base=None, skeleton="blank"):
             message += "\n准备提交请运行：\n" + display
         raise ValueError(message)
     contents = dict(BUNDLE["headers"])
-    contents.update({"prepare.py": BUNDLE["prepare"], "main.c": starter(skeleton),
-                     "工具箱速查_v" + version + ".md": BUNDLE["manual"]})
+    contents.update({"prepare.py": BUNDLE["prepare"], "main.c": starter(skeleton)})
     target.parent.mkdir(parents=True, exist_ok=True)
     target.mkdir(exist_ok=False)
     created = []
     try:
         for name, content in contents.items():
             path = target / name
+            path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("x", encoding="utf-8") as stream:
                 created.append(path)
                 stream.write(content)
     except Exception:
         for path in created:
             path.unlink()
+        for directory in sorted((p for p in target.rglob("*") if p.is_dir()),
+                                key=lambda p: len(p.parts), reverse=True):
+            directory.rmdir()
         target.rmdir()
         raise
     print("已创建题目目录：" + str(target))

@@ -1,6 +1,6 @@
 #ifndef CTB_VEC_DOUBLE_H
 #define CTB_VEC_DOUBLE_H
-#include "ctb_io.h"
+#include "io.h"
 /* SPDX-License-Identifier: MIT-0 */
 /* Typed, contiguous storage. Elements are shallow copied; no element destructor. */
 typedef struct { double *data; size_t len, cap; } DoubleVector;
@@ -50,6 +50,7 @@ static void DoubleVector_sort(DoubleVector *v, int (*compare)(const void *, cons
     if (v->len > 1) qsort(v->data, v->len, sizeof *v->data, compare);
 }
 static void DoubleVector_free(DoubleVector *v) { free(v->data); *v = (DoubleVector){0}; }
+static void DoubleVector_swap(DoubleVector *a,DoubleVector *b) { DoubleVector value=*a;*a=*b;*b=value; }
 
 /* SPDX-License-Identifier: MIT-0 */
 static bool DoubleVector_get_into(const DoubleVector *v, size_t pos, double *out) {
@@ -106,6 +107,15 @@ static DoubleVector DoubleVector_slice(const DoubleVector *v, size_t pos, size_t
     if (count) DoubleVector_extend(&result, v->data + pos, count);
     return result;
 }
+/* Forward half-open slice [first,last) with a positive stride. */
+static DoubleVector DoubleVector_slice_step(const DoubleVector *v,size_t first,size_t last,size_t step) {
+    if(!step || first>last || last>v->len)tb_fail("invalid vector slice");
+    DoubleVector result=DoubleVector_new();
+    size_t count=first==last?0:1+(last-first-1)/step;
+    DoubleVector_reserve(&result,count);
+    for(size_t i=first;i<last;) { DoubleVector_push(&result,v->data[i]);if(step>last-1-i)break;i+=step; }
+    return result;
+}
 static void DoubleVector_extend_vector(DoubleVector *v, const DoubleVector *other) {
     DoubleVector_extend(v, other->data, other->len);
 }
@@ -127,11 +137,23 @@ static DoubleVector DoubleVector_filter(const DoubleVector *v, bool (*predicate)
         if (predicate(v->data[i])) DoubleVector_push(&result, v->data[i]);
     return result;
 }
+static DoubleVector DoubleVector_filter_ctx(const DoubleVector *v, bool (*predicate)(double,void *),void *context) {
+    if (!predicate) tb_fail("missing predicate");
+    DoubleVector result=DoubleVector_new();
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))DoubleVector_push(&result,v->data[i]);
+    return result;
+}
 static DoubleVector DoubleVector_map(const DoubleVector *v, double (*transform)(double)) {
     if (!transform) tb_fail("missing transform");
     DoubleVector result = DoubleVector_new();
     DoubleVector_reserve(&result, v->len);
     for (size_t i = 0; i < v->len; ++i) DoubleVector_push(&result, transform(v->data[i]));
+    return result;
+}
+static DoubleVector DoubleVector_map_ctx(const DoubleVector *v,double (*transform)(double,void *),void *context) {
+    if(!transform)tb_fail("missing transform");
+    DoubleVector result=DoubleVector_new();DoubleVector_reserve(&result,v->len);
+    for(size_t i=0;i<v->len;++i)DoubleVector_push(&result,transform(v->data[i],context));
     return result;
 }
 static void DoubleVector_map_inplace(DoubleVector *v, double (*transform)(double)) {
@@ -141,6 +163,11 @@ static void DoubleVector_map_inplace(DoubleVector *v, double (*transform)(double
 static size_t DoubleVector_find_if(const DoubleVector *v, bool (*predicate)(double)) {
     if (!predicate) tb_fail("missing predicate");
     for (size_t i = 0; i < v->len; ++i) if (predicate(v->data[i])) return i;
+    return SIZE_MAX;
+}
+static size_t DoubleVector_find_if_ctx(const DoubleVector *v,bool (*predicate)(double,void *),void *context) {
+    if(!predicate)tb_fail("missing predicate");
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))return i;
     return SIZE_MAX;
 }
 static size_t DoubleVector_count_if(const DoubleVector *v, bool (*predicate)(double)) {
@@ -163,6 +190,11 @@ static double DoubleVector_reduce(const DoubleVector *v, double initial,
     double result = initial;
     for (size_t i = 0; i < v->len; ++i) result = combine(result, v->data[i]);
     return result;
+}
+static double DoubleVector_reduce_ctx(const DoubleVector *v,double initial,double (*combine)(double,double,void *),void *context) {
+    if(!combine)tb_fail("missing reducer");
+    for(size_t i=0;i<v->len;++i)initial=combine(initial,v->data[i],context);
+    return initial;
 }
 
 /* SPDX-License-Identifier: MIT-0 */
@@ -299,6 +331,7 @@ static void DoubleVector_sort_by(DoubleVector *v,int (*compare)(const double *,c
 }
 
 static DoubleVector read_doubles(size_t count) { DoubleVector v=DoubleVector_new();DoubleVector_reserve(&v,count);for(size_t i=0;i<count;++i) DoubleVector_push(&v,read_double());return v;}
-static void print_doubles(const DoubleVector *v,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep);print_double(v->data[i]);}print_text(end);}
+
+static void print_doubles(const DoubleVector *v,int digits,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep,"");print_double(v->data[i],digits,"");}print_text("",end);}
 
 #endif

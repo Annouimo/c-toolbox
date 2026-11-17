@@ -1,6 +1,6 @@
 #ifndef CTB_VEC_SIZE_H
 #define CTB_VEC_SIZE_H
-#include "ctb_io.h"
+#include "io.h"
 /* SPDX-License-Identifier: MIT-0 */
 /* Typed, contiguous storage. Elements are shallow copied; no element destructor. */
 typedef struct { size_t *data; size_t len, cap; } IndexVector;
@@ -50,6 +50,7 @@ static void IndexVector_sort(IndexVector *v, int (*compare)(const void *, const 
     if (v->len > 1) qsort(v->data, v->len, sizeof *v->data, compare);
 }
 static void IndexVector_free(IndexVector *v) { free(v->data); *v = (IndexVector){0}; }
+static void IndexVector_swap(IndexVector *a,IndexVector *b) { IndexVector value=*a;*a=*b;*b=value; }
 
 /* SPDX-License-Identifier: MIT-0 */
 static bool IndexVector_get_into(const IndexVector *v, size_t pos, size_t *out) {
@@ -106,6 +107,15 @@ static IndexVector IndexVector_slice(const IndexVector *v, size_t pos, size_t co
     if (count) IndexVector_extend(&result, v->data + pos, count);
     return result;
 }
+/* Forward half-open slice [first,last) with a positive stride. */
+static IndexVector IndexVector_slice_step(const IndexVector *v,size_t first,size_t last,size_t step) {
+    if(!step || first>last || last>v->len)tb_fail("invalid vector slice");
+    IndexVector result=IndexVector_new();
+    size_t count=first==last?0:1+(last-first-1)/step;
+    IndexVector_reserve(&result,count);
+    for(size_t i=first;i<last;) { IndexVector_push(&result,v->data[i]);if(step>last-1-i)break;i+=step; }
+    return result;
+}
 static void IndexVector_extend_vector(IndexVector *v, const IndexVector *other) {
     IndexVector_extend(v, other->data, other->len);
 }
@@ -127,11 +137,23 @@ static IndexVector IndexVector_filter(const IndexVector *v, bool (*predicate)(si
         if (predicate(v->data[i])) IndexVector_push(&result, v->data[i]);
     return result;
 }
+static IndexVector IndexVector_filter_ctx(const IndexVector *v, bool (*predicate)(size_t,void *),void *context) {
+    if (!predicate) tb_fail("missing predicate");
+    IndexVector result=IndexVector_new();
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))IndexVector_push(&result,v->data[i]);
+    return result;
+}
 static IndexVector IndexVector_map(const IndexVector *v, size_t (*transform)(size_t)) {
     if (!transform) tb_fail("missing transform");
     IndexVector result = IndexVector_new();
     IndexVector_reserve(&result, v->len);
     for (size_t i = 0; i < v->len; ++i) IndexVector_push(&result, transform(v->data[i]));
+    return result;
+}
+static IndexVector IndexVector_map_ctx(const IndexVector *v,size_t (*transform)(size_t,void *),void *context) {
+    if(!transform)tb_fail("missing transform");
+    IndexVector result=IndexVector_new();IndexVector_reserve(&result,v->len);
+    for(size_t i=0;i<v->len;++i)IndexVector_push(&result,transform(v->data[i],context));
     return result;
 }
 static void IndexVector_map_inplace(IndexVector *v, size_t (*transform)(size_t)) {
@@ -141,6 +163,11 @@ static void IndexVector_map_inplace(IndexVector *v, size_t (*transform)(size_t))
 static size_t IndexVector_find_if(const IndexVector *v, bool (*predicate)(size_t)) {
     if (!predicate) tb_fail("missing predicate");
     for (size_t i = 0; i < v->len; ++i) if (predicate(v->data[i])) return i;
+    return SIZE_MAX;
+}
+static size_t IndexVector_find_if_ctx(const IndexVector *v,bool (*predicate)(size_t,void *),void *context) {
+    if(!predicate)tb_fail("missing predicate");
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))return i;
     return SIZE_MAX;
 }
 static size_t IndexVector_count_if(const IndexVector *v, bool (*predicate)(size_t)) {
@@ -163,6 +190,11 @@ static size_t IndexVector_reduce(const IndexVector *v, size_t initial,
     size_t result = initial;
     for (size_t i = 0; i < v->len; ++i) result = combine(result, v->data[i]);
     return result;
+}
+static size_t IndexVector_reduce_ctx(const IndexVector *v,size_t initial,size_t (*combine)(size_t,size_t,void *),void *context) {
+    if(!combine)tb_fail("missing reducer");
+    for(size_t i=0;i<v->len;++i)initial=combine(initial,v->data[i],context);
+    return initial;
 }
 
 /* SPDX-License-Identifier: MIT-0 */
@@ -191,6 +223,7 @@ static void IndexVector_sort_by(IndexVector *v,int (*compare)(const size_t *,con
 }
 
 static IndexVector read_sizes(size_t count) { IndexVector v=IndexVector_new();IndexVector_reserve(&v,count);for(size_t i=0;i<count;++i) IndexVector_push(&v,read_ull());return v;}
-static void print_sizes(const IndexVector *v,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep);print_ull(v->data[i]);}print_text(end);}
+
+static void print_sizes(const IndexVector *v,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep,"");print_ull(v->data[i],"");}print_text("",end);}
 
 #endif

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_MATH_H
 #define CTB_MATH_H
-#include "ctb_core.h"
+#include "core.h"
 #include <math.h>
 typedef struct { bool ok; unsigned long long value; } UnsignedResult;
 typedef struct { bool ok; long long value; } IntegerResult;
@@ -33,6 +33,37 @@ static IntegerResult try_integer_power(long long base,unsigned int exponent) {
     return (IntegerResult){true,value};
 }
 static long long integer_power(long long base,unsigned int exponent){IntegerResult r=try_integer_power(base,exponent);if(!r.ok)tb_fail("integer power overflow");return r.value;}
+static unsigned long long tb_add_mod(unsigned long long a,unsigned long long b,unsigned long long mod) {
+    return a>=mod-b?a-(mod-b):a+b;
+}
+static unsigned long long tb_multiply_mod(unsigned long long a,unsigned long long b,unsigned long long mod) {
+    if(mod<=ULLONG_MAX/mod)return a*b%mod;
+    unsigned long long result=0;
+    while(b){if(b&1)result=tb_add_mod(result,a,mod);b>>=1;if(b)a=tb_add_mod(a,a,mod);}
+    return result;
+}
+/* Nonnegative exponent; modulus must be positive. */
+static unsigned long long modular_power(long long base,unsigned long long exponent,unsigned long long modulus) {
+    if(!modulus)tb_fail("zero modulus");
+    unsigned long long magnitude=tb_magnitude(base)%modulus;
+    unsigned long long value=base<0 && magnitude?modulus-magnitude:magnitude;
+    unsigned long long result=1%modulus;
+    while(exponent){if(exponent&1)result=tb_multiply_mod(result,value,modulus);exponent>>=1;if(exponent)value=tb_multiply_mod(value,value,modulus);}
+    return result;
+}
+typedef struct { bool exists; unsigned long long value; } ModularInverseResult;
+static ModularInverseResult modular_inverse(long long value,unsigned long long modulus) {
+    if(modulus<2 || modulus>(unsigned long long)LLONG_MAX)return (ModularInverseResult){false,0};
+    unsigned long long a=tb_magnitude(value)%modulus;
+    if(value<0 && a)a=modulus-a;
+    unsigned long long r=modulus,nr=a,t=0,nt=1;
+    while(nr){unsigned long long q=r/nr,next_r=r%nr;
+        unsigned long long product=tb_multiply_mod(q%modulus,nt,modulus);
+        unsigned long long next_t=t>=product?t-product:modulus-(product-t);
+        r=nr;nr=next_r;t=nt;nt=next_t;
+    }
+    return r==1?(ModularInverseResult){true,t}:(ModularInverseResult){false,0};
+}
 /* Absolute or relative tolerance; finite nonnegative tolerances required. */
 static bool nearly_equal(double a,double b,double absolute,double relative) {
     if(!isfinite(absolute)||!isfinite(relative)||absolute<0||relative<0)tb_fail("invalid tolerance");

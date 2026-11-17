@@ -1,6 +1,6 @@
 #ifndef CTB_MAP_H
 #define CTB_MAP_H
-#include "ctb_string.h"
+#include "string.h"
 /* SPDX-License-Identifier: MIT-0 */
 /* Open addressing, owned copies of string keys, long long values.
    state: 0=empty, 1=live, 2=tombstone. Iteration order is unspecified. */

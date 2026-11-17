@@ -1,5 +1,20 @@
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { IOStatus status; String value; } StringReadResult;
+typedef struct { bool ok; int value; } StringIntResult;
+typedef struct { bool ok; long long value; } StringLongLongResult;
+typedef struct { bool ok; double value; } StringDoubleResult;
+static StringIntResult string_parse_int(const String *s) {
+    StringIntResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
+    if(errno==ERANGE || end==string_cstr(s) || *end || x<INT_MIN || x>INT_MAX)return r;r.ok=true;r.value=(int)x;return r;
+}
+static StringLongLongResult string_parse_ll(const String *s) {
+    StringLongLongResult r={false,0};if(!s->len)return r;char *end;errno=0;long long x=strtoll(string_cstr(s),&end,10);
+    if(errno==ERANGE || end==string_cstr(s) || *end)return r;r.ok=true;r.value=x;return r;
+}
+static StringDoubleResult string_parse_double(const String *s) {
+    StringDoubleResult r={false,0};if(!s->len)return r;char *end;errno=0;double x=strtod(string_cstr(s),&end);
+    if(errno==ERANGE || end==string_cstr(s) || *end || !isfinite(x))return r;r.ok=true;r.value=x;return r;
+}
 static StringReadResult io_try_read_word(IOReader *r) {
     StringReadResult result={IO_OK,{0}};char *token=tb_io_token(r,&result.status);
     if(result.status==IO_OK)result.value=string_from(token);
@@ -29,7 +44,7 @@ static String read_word(void){StringReadResult r=try_read_word();io_require(r.st
 static String read_line(void){StringReadResult r=try_read_line();io_require(r.status);return r.value;}
 static String read_line_raw(void){StringReadResult r=try_read_line_raw();io_require(r.status);return r.value;}
 static String read_rest(void){return read_line_raw();}
-static void print_string(const String *s){print_text(string_cstr(s));}
+static void print_string(const String *s,const char *end){print_text(string_cstr(s),end);}
 static StringList read_words(size_t count){StringList result={0};for(size_t i=0;i<count;++i){String s=read_word();string_list_push_take(&result,&s);}return result;}
 
 /* After a token, reject extra nonspace data before crossing into next line. */

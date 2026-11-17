@@ -1,6 +1,6 @@
-#include "ctb_vector.h"
-#include "ctb_deque.h"
-#include "ctb_heap.h"
+#include "ctb/vector.h"
+#include "ctb/deque.h"
+#include "ctb/heap.h"
 #include <assert.h>
 typedef struct {int score, time;} Record;
 CTB_VECTOR_DEFINE(Records,Record)
