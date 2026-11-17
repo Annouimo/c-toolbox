@@ -14,12 +14,13 @@ class ModularTests(unittest.TestCase):
     def test_headers_and_io(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder=Path(tmp)
-            for name,code in headers().items(): (folder/name).write_text(code)
-            self.assertNotIn('String', (folder/'ctb_io.h').read_text())
-            source='''#include "ctb_string.h"
-#include "ctb_vec_int.h"
-#include "ctb_vec_double.h"
-#include "ctb_counter.h"
+            for name,code in headers().items():
+                path=folder/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(code)
+            self.assertNotIn('String', (folder/'ctb/io.h').read_text())
+            source='''#include "ctb/string.h"
+#include "ctb/vec_int.h"
+#include "ctb/vec_double.h"
+#include "ctb/counter.h"
 #include <assert.h>
 int main(void){
  StringReadResult a=try_read_line_raw(); assert(a.status==IO_OK && !a.value.len);string_free(&a.value);
@@ -39,9 +40,9 @@ int main(void){
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.6.0.py'
+        script=ROOT/'dist/c_toolbox_v0.7.0.py'
         with tempfile.TemporaryDirectory() as tmp:
-            cases={'blank':'','t':'0\n','eof':'1 2\n','eof_pair':'1 2\n','sentinel':'-1\n','operations':'0\n','eof_word':'a b\n','eof_line':'a\nb\n','eof_line_raw':'\n a \n'}
+            cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
                 folder=Path(tmp)/mode
                 subprocess.run([sys.executable,str(script),'--folder',str(folder),'--skeleton',mode],check=True,capture_output=True)

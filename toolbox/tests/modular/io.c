@@ -1,4 +1,4 @@
-#include "ctb_io.h"
+#include "ctb/io.h"
 #include <assert.h>
 int main(void) {
  FILE *f=tmpfile(); assert(f); fputs("12 12x -1 4294967296 2.5\r\n Z",f);rewind(f);IOReader r=io_reader(f);

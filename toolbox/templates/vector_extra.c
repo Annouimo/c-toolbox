@@ -53,6 +53,15 @@ static @NAME@ @NAME@_slice(const @NAME@ *v, size_t pos, size_t count) {
     if (count) @NAME@_extend(&result, v->data + pos, count);
     return result;
 }
+/* Forward half-open slice [first,last) with a positive stride. */
+static @NAME@ @NAME@_slice_step(const @NAME@ *v,size_t first,size_t last,size_t step) {
+    if(!step || first>last || last>v->len)tb_fail("invalid vector slice");
+    @NAME@ result=@NAME@_new();
+    size_t count=first==last?0:1+(last-first-1)/step;
+    @NAME@_reserve(&result,count);
+    for(size_t i=first;i<last;) { @NAME@_push(&result,v->data[i]);if(step>last-1-i)break;i+=step; }
+    return result;
+}
 static void @NAME@_extend_vector(@NAME@ *v, const @NAME@ *other) {
     @NAME@_extend(v, other->data, other->len);
 }

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT-0 */
-#include "ctb_io.h"
+#include "ctb/io.h"
 
 int main(void) {
     /* Write your solution here. */

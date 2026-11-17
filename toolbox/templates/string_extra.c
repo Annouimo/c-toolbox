@@ -1,4 +1,42 @@
 /* SPDX-License-Identifier: MIT-0 */
+static void string_push(String *s, char ch);
+static String string_slice_step(const String *s,size_t first,size_t last,size_t step) {
+    if(!step || first>last || last>s->len)tb_fail("invalid string slice");
+    String result=string_new();
+    size_t count=first==last?0:1+(last-first-1)/step;
+    string_reserve(&result,count);
+    for(size_t i=first;i<last;) { string_push(&result,s->data[i]);if(step>last-1-i)break;i+=step; }
+    return result;
+}
+static String string_repeat_char(char ch,size_t count) {
+    if(!ch && count)tb_fail("NUL is not a text character");
+    String result=string_new();
+    string_reserve(&result,count);if(count)memset(result.data,ch,count);result.data[count]='\0';result.len=count;return result;
+}
+static String string_repeat(const String *s,size_t count) {
+    if(count && s->len>SIZE_MAX/count)tb_fail("string size overflow");
+    size_t length=s->len*count;String result=string_new();string_reserve(&result,length);
+    for(size_t i=0;i<count;++i)if(s->len)memcpy(result.data+i*s->len,string_cstr(s),s->len);
+    result.data[length]='\0';result.len=length;return result;
+}
+static void string_append_repeat(String *s,const String *part,size_t count) {
+    String repeated=string_repeat(part,count);string_append(s,string_cstr(&repeated));string_free(&repeated);
+}
+static void string_append_slice(String *s,const String *source,size_t first,size_t count) {
+    String slice=string_slice(source,first,count);string_append(s,string_cstr(&slice));string_free(&slice);
+}
+static void string_pad_left(String *s,size_t width,char fill) {
+    if(!fill)tb_fail("NUL is not a text character");
+    if(width<=s->len)return;
+    size_t padding=width-s->len;string_reserve(s,width);memmove(s->data+padding,s->data,s->len+1);
+    memset(s->data,fill,padding);s->len=width;
+}
+static void string_pad_right(String *s,size_t width,char fill) {
+    if(!fill)tb_fail("NUL is not a text character");
+    if(width<=s->len)return;
+    size_t padding=width-s->len;string_reserve(s,width);memset(s->data+s->len,fill,padding);
+    s->len=width;s->data[width]='\0';
+}
 static void string_clear(String *s) {
     s->len = 0;
     if (s->data) s->data[0] = '\0';

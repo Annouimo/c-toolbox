@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_BIGINT_H
 #define CTB_BIGINT_H
-#include "ctb_string.h"
+#include "string.h"
 /* Owned base-10 magnitude, least significant digit first. Zero initializer valid.
    sign is -1, 0 or 1. Use clone, never shallow-copy independent owners. */
 typedef struct { unsigned char *digits; size_t len; int sign; } BigInt;
@@ -73,5 +73,5 @@ static BigInt bigint_factorial(unsigned int n){BigInt r=bigint_from_ll(1);for(un
 typedef struct {IOStatus status;BigInt value;} BigIntReadResult;
 static BigIntReadResult try_read_bigint(void){StringReadResult token=try_read_word();BigIntReadResult r={token.status,{0}};if(r.status==IO_OK){BigIntResult parsed=try_bigint_from(string_cstr(&token.value));if(!parsed.ok)r.status=IO_FORMAT;else r.value=parsed.value;}string_free(&token.value);return r;}
 static BigInt read_bigint(void){BigIntReadResult r=try_read_bigint();io_require(r.status);return r.value;}
-static void print_bigint(const BigInt *a){String s=bigint_to_string(a);print_string(&s);string_free(&s);}
+static void print_bigint(const BigInt *a,const char *end){String s=bigint_to_string(a);print_string(&s,end);string_free(&s);}
 #endif

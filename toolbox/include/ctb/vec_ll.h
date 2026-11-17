@@ -1,6 +1,6 @@
 #ifndef CTB_VEC_LL_H
 #define CTB_VEC_LL_H
-#include "ctb_io.h"
+#include "io.h"
 /* SPDX-License-Identifier: MIT-0 */
 /* Typed, contiguous storage. Elements are shallow copied; no element destructor. */
 typedef struct { long long *data; size_t len, cap; } LongLongVector;
@@ -50,6 +50,7 @@ static void LongLongVector_sort(LongLongVector *v, int (*compare)(const void *, 
     if (v->len > 1) qsort(v->data, v->len, sizeof *v->data, compare);
 }
 static void LongLongVector_free(LongLongVector *v) { free(v->data); *v = (LongLongVector){0}; }
+static void LongLongVector_swap(LongLongVector *a,LongLongVector *b) { LongLongVector value=*a;*a=*b;*b=value; }
 
 /* SPDX-License-Identifier: MIT-0 */
 static bool LongLongVector_get_into(const LongLongVector *v, size_t pos, long long *out) {
@@ -106,6 +107,15 @@ static LongLongVector LongLongVector_slice(const LongLongVector *v, size_t pos, 
     if (count) LongLongVector_extend(&result, v->data + pos, count);
     return result;
 }
+/* Forward half-open slice [first,last) with a positive stride. */
+static LongLongVector LongLongVector_slice_step(const LongLongVector *v,size_t first,size_t last,size_t step) {
+    if(!step || first>last || last>v->len)tb_fail("invalid vector slice");
+    LongLongVector result=LongLongVector_new();
+    size_t count=first==last?0:1+(last-first-1)/step;
+    LongLongVector_reserve(&result,count);
+    for(size_t i=first;i<last;) { LongLongVector_push(&result,v->data[i]);if(step>last-1-i)break;i+=step; }
+    return result;
+}
 static void LongLongVector_extend_vector(LongLongVector *v, const LongLongVector *other) {
     LongLongVector_extend(v, other->data, other->len);
 }
@@ -127,11 +137,23 @@ static LongLongVector LongLongVector_filter(const LongLongVector *v, bool (*pred
         if (predicate(v->data[i])) LongLongVector_push(&result, v->data[i]);
     return result;
 }
+static LongLongVector LongLongVector_filter_ctx(const LongLongVector *v, bool (*predicate)(long long,void *),void *context) {
+    if (!predicate) tb_fail("missing predicate");
+    LongLongVector result=LongLongVector_new();
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))LongLongVector_push(&result,v->data[i]);
+    return result;
+}
 static LongLongVector LongLongVector_map(const LongLongVector *v, long long (*transform)(long long)) {
     if (!transform) tb_fail("missing transform");
     LongLongVector result = LongLongVector_new();
     LongLongVector_reserve(&result, v->len);
     for (size_t i = 0; i < v->len; ++i) LongLongVector_push(&result, transform(v->data[i]));
+    return result;
+}
+static LongLongVector LongLongVector_map_ctx(const LongLongVector *v,long long (*transform)(long long,void *),void *context) {
+    if(!transform)tb_fail("missing transform");
+    LongLongVector result=LongLongVector_new();LongLongVector_reserve(&result,v->len);
+    for(size_t i=0;i<v->len;++i)LongLongVector_push(&result,transform(v->data[i],context));
     return result;
 }
 static void LongLongVector_map_inplace(LongLongVector *v, long long (*transform)(long long)) {
@@ -141,6 +163,11 @@ static void LongLongVector_map_inplace(LongLongVector *v, long long (*transform)
 static size_t LongLongVector_find_if(const LongLongVector *v, bool (*predicate)(long long)) {
     if (!predicate) tb_fail("missing predicate");
     for (size_t i = 0; i < v->len; ++i) if (predicate(v->data[i])) return i;
+    return SIZE_MAX;
+}
+static size_t LongLongVector_find_if_ctx(const LongLongVector *v,bool (*predicate)(long long,void *),void *context) {
+    if(!predicate)tb_fail("missing predicate");
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))return i;
     return SIZE_MAX;
 }
 static size_t LongLongVector_count_if(const LongLongVector *v, bool (*predicate)(long long)) {
@@ -163,6 +190,11 @@ static long long LongLongVector_reduce(const LongLongVector *v, long long initia
     long long result = initial;
     for (size_t i = 0; i < v->len; ++i) result = combine(result, v->data[i]);
     return result;
+}
+static long long LongLongVector_reduce_ctx(const LongLongVector *v,long long initial,long long (*combine)(long long,long long,void *),void *context) {
+    if(!combine)tb_fail("missing reducer");
+    for(size_t i=0;i<v->len;++i)initial=combine(initial,v->data[i],context);
+    return initial;
 }
 
 /* SPDX-License-Identifier: MIT-0 */
@@ -294,9 +326,9 @@ static LongLongVector LongLongVector_range(long long start, long long stop, long
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; long long value; } LongLongVectorResult;
-static LongLongVectorResult LongLongVector_try_get(const LongLongVector *v,size_t pos){LongLongVectorResult r={false,(long long){0}};r.ok=LongLongVector_get_into(v,pos,&r.value);return r;}
+static LongLongVectorResult LongLongVector_try_get(const LongLongVector *v,size_t pos){LongLongVectorResult r={0};r.ok=LongLongVector_get_into(v,pos,&r.value);return r;}
 static long long LongLongVector_get(const LongLongVector *v,size_t pos){LongLongVectorResult r=LongLongVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static LongLongVectorResult LongLongVector_try_pop(LongLongVector *v){LongLongVectorResult r={false,(long long){0}};r.ok=LongLongVector_pop_into(v,&r.value);return r;}
+static LongLongVectorResult LongLongVector_try_pop(LongLongVector *v){LongLongVectorResult r={0};r.ok=LongLongVector_pop_into(v,&r.value);return r;}
 static long long LongLongVector_pop(LongLongVector *v){LongLongVectorResult r=LongLongVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static long long LongLongVector_front(const LongLongVector *v){return LongLongVector_get(v,0);}
 static long long LongLongVector_back(const LongLongVector *v){if(!v->len)tb_fail("back of empty vector");return LongLongVector_get(v,v->len-1);}
@@ -318,6 +350,7 @@ static void LongLongVector_sort_by(LongLongVector *v,int (*compare)(const long l
 }
 
 static LongLongVector read_lls(size_t count) { LongLongVector v=LongLongVector_new();LongLongVector_reserve(&v,count);for(size_t i=0;i<count;++i) LongLongVector_push(&v,read_ll());return v;}
-static void print_lls(const LongLongVector *v,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep);print_ll(v->data[i]);}print_text(end);}
+
+static void print_lls(const LongLongVector *v,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep,"");print_ll(v->data[i],"");}print_text("",end);}
 
 #endif

@@ -1,6 +1,6 @@
 #ifndef CTB_SET_H
 #define CTB_SET_H
-#include "ctb_map.h"
+#include "map.h"
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { Map items; } Set;
 static Set set_new(void) { return (Set){0}; }

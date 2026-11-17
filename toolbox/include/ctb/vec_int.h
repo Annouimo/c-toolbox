@@ -1,6 +1,6 @@
 #ifndef CTB_VEC_INT_H
 #define CTB_VEC_INT_H
-#include "ctb_io.h"
+#include "io.h"
 /* SPDX-License-Identifier: MIT-0 */
 /* Typed, contiguous storage. Elements are shallow copied; no element destructor. */
 typedef struct { int *data; size_t len, cap; } IntVector;
@@ -50,6 +50,7 @@ static void IntVector_sort(IntVector *v, int (*compare)(const void *, const void
     if (v->len > 1) qsort(v->data, v->len, sizeof *v->data, compare);
 }
 static void IntVector_free(IntVector *v) { free(v->data); *v = (IntVector){0}; }
+static void IntVector_swap(IntVector *a,IntVector *b) { IntVector value=*a;*a=*b;*b=value; }
 
 /* SPDX-License-Identifier: MIT-0 */
 static bool IntVector_get_into(const IntVector *v, size_t pos, int *out) {
@@ -106,6 +107,15 @@ static IntVector IntVector_slice(const IntVector *v, size_t pos, size_t count) {
     if (count) IntVector_extend(&result, v->data + pos, count);
     return result;
 }
+/* Forward half-open slice [first,last) with a positive stride. */
+static IntVector IntVector_slice_step(const IntVector *v,size_t first,size_t last,size_t step) {
+    if(!step || first>last || last>v->len)tb_fail("invalid vector slice");
+    IntVector result=IntVector_new();
+    size_t count=first==last?0:1+(last-first-1)/step;
+    IntVector_reserve(&result,count);
+    for(size_t i=first;i<last;) { IntVector_push(&result,v->data[i]);if(step>last-1-i)break;i+=step; }
+    return result;
+}
 static void IntVector_extend_vector(IntVector *v, const IntVector *other) {
     IntVector_extend(v, other->data, other->len);
 }
@@ -127,11 +137,23 @@ static IntVector IntVector_filter(const IntVector *v, bool (*predicate)(int)) {
         if (predicate(v->data[i])) IntVector_push(&result, v->data[i]);
     return result;
 }
+static IntVector IntVector_filter_ctx(const IntVector *v, bool (*predicate)(int,void *),void *context) {
+    if (!predicate) tb_fail("missing predicate");
+    IntVector result=IntVector_new();
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))IntVector_push(&result,v->data[i]);
+    return result;
+}
 static IntVector IntVector_map(const IntVector *v, int (*transform)(int)) {
     if (!transform) tb_fail("missing transform");
     IntVector result = IntVector_new();
     IntVector_reserve(&result, v->len);
     for (size_t i = 0; i < v->len; ++i) IntVector_push(&result, transform(v->data[i]));
+    return result;
+}
+static IntVector IntVector_map_ctx(const IntVector *v,int (*transform)(int,void *),void *context) {
+    if(!transform)tb_fail("missing transform");
+    IntVector result=IntVector_new();IntVector_reserve(&result,v->len);
+    for(size_t i=0;i<v->len;++i)IntVector_push(&result,transform(v->data[i],context));
     return result;
 }
 static void IntVector_map_inplace(IntVector *v, int (*transform)(int)) {
@@ -141,6 +163,11 @@ static void IntVector_map_inplace(IntVector *v, int (*transform)(int)) {
 static size_t IntVector_find_if(const IntVector *v, bool (*predicate)(int)) {
     if (!predicate) tb_fail("missing predicate");
     for (size_t i = 0; i < v->len; ++i) if (predicate(v->data[i])) return i;
+    return SIZE_MAX;
+}
+static size_t IntVector_find_if_ctx(const IntVector *v,bool (*predicate)(int,void *),void *context) {
+    if(!predicate)tb_fail("missing predicate");
+    for(size_t i=0;i<v->len;++i)if(predicate(v->data[i],context))return i;
     return SIZE_MAX;
 }
 static size_t IntVector_count_if(const IntVector *v, bool (*predicate)(int)) {
@@ -163,6 +190,11 @@ static int IntVector_reduce(const IntVector *v, int initial,
     int result = initial;
     for (size_t i = 0; i < v->len; ++i) result = combine(result, v->data[i]);
     return result;
+}
+static int IntVector_reduce_ctx(const IntVector *v,int initial,int (*combine)(int,int,void *),void *context) {
+    if(!combine)tb_fail("missing reducer");
+    for(size_t i=0;i<v->len;++i)initial=combine(initial,v->data[i],context);
+    return initial;
 }
 
 /* SPDX-License-Identifier: MIT-0 */
@@ -294,9 +326,9 @@ static IntVector IntVector_range(int start, int stop, int step) {
 
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; int value; } IntVectorResult;
-static IntVectorResult IntVector_try_get(const IntVector *v,size_t pos){IntVectorResult r={false,(int){0}};r.ok=IntVector_get_into(v,pos,&r.value);return r;}
+static IntVectorResult IntVector_try_get(const IntVector *v,size_t pos){IntVectorResult r={0};r.ok=IntVector_get_into(v,pos,&r.value);return r;}
 static int IntVector_get(const IntVector *v,size_t pos){IntVectorResult r=IntVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
-static IntVectorResult IntVector_try_pop(IntVector *v){IntVectorResult r={false,(int){0}};r.ok=IntVector_pop_into(v,&r.value);return r;}
+static IntVectorResult IntVector_try_pop(IntVector *v){IntVectorResult r={0};r.ok=IntVector_pop_into(v,&r.value);return r;}
 static int IntVector_pop(IntVector *v){IntVectorResult r=IntVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
 static int IntVector_front(const IntVector *v){return IntVector_get(v,0);}
 static int IntVector_back(const IntVector *v){if(!v->len)tb_fail("back of empty vector");return IntVector_get(v,v->len-1);}
@@ -318,6 +350,7 @@ static void IntVector_sort_by(IntVector *v,int (*compare)(const int *,const int 
 }
 
 static IntVector read_ints(size_t count) { IntVector v=IntVector_new();IntVector_reserve(&v,count);for(size_t i=0;i<count;++i) IntVector_push(&v,read_int());return v;}
-static void print_ints(const IntVector *v,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep);print_int(v->data[i]);}print_text(end);}
+
+static void print_ints(const IntVector *v,const char *sep,const char *end) {for(size_t i=0;i<v->len;++i){if(i)print_text(sep,"");print_int(v->data[i],"");}print_text("",end);}
 
 #endif

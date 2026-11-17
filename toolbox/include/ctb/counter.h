@@ -1,6 +1,6 @@
 #ifndef CTB_COUNTER_H
 #define CTB_COUNTER_H
-#include "ctb_map.h"
+#include "map.h"
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { Map items; } Counter;
 static Counter counter_new(void) { return (Counter){0}; }

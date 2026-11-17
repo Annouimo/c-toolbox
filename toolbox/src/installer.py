@@ -19,17 +19,20 @@ SKELETONS = {
     "sentinel": "for (;;) {\n        IntReadResult r = try_read_int();\n        if (r.status == IO_EOF) break;\n        io_require(r.status);\n        if (r.value == -1) break; /* change sentinel */\n        /* TODO */\n    }",
     "operations": "int q = read_int();\n    if (q < 0) tb_fail(\"negative operation count\");\n    for (int i = 0; i < q; ++i) {\n        char operation = read_char();\n        switch (operation) {\n            /* TODO: case */\n        }\n    }",
 }
-SKELETONS["eof_pair"] = "for (;;) {\n        IntReadResult first = try_read_int();\n        if (first.status == IO_EOF) break;\n        io_require(first.status);\n        int a = first.value, b = read_int();\n        (void)a; (void)b; /* TODO */\n    }"
-for mode, read in (("eof_word", "word"), ("eof_line", "line"), ("eof_line_raw", "line_raw")):
-    SKELETONS[mode] = "for (;;) {\n        StringReadResult r = try_read_" + read + "();\n        if (r.status == IO_EOF) break;\n        io_require(r.status);\n        /* TODO: r.value */\n        string_free(&r.value);\n    }"
+
+SKELETON_MENU = (
+    ("blank", "1  空白 main（默认）"),
+    ("t", "2  T 组数据"),
+    ("eof", "3  读到 EOF"),
+    ("sentinel", "4  遇哨兵停止"),
+    ("operations", "5  q 次操作"),
+    ("toolbox_only", "6  仅创建工具箱，不生成 main"),
+)
 
 def starter(skeleton):
     if skeleton not in SKELETONS:
         raise ValueError("unknown input skeleton: " + skeleton)
-    includes = '#include "ctb_io.h"\n'
-    if skeleton in ('eof_word', 'eof_line', 'eof_line_raw'):
-        includes += '#include "ctb_string.h"\n'
-    return includes + '\nint main(void) {\n    ' + SKELETONS[skeleton] + '\n    return 0;\n}\n'
+    return '#include "ctb/io.h"\n\nint main(void) {\n    ' + SKELETONS[skeleton] + '\n    return 0;\n}\n'
 
 def initialize_folder(answer, base=None, skeleton="blank"):
     base = Path(base or Path(__file__).resolve().parent).resolve()
@@ -55,25 +58,35 @@ def initialize_folder(answer, base=None, skeleton="blank"):
             display = subprocess.list2cmdline(command) if os.name == "nt" else shlex.join(command)
             message += "\n准备提交请运行：\n" + display
         raise ValueError(message)
+    if skeleton not in SKELETONS and skeleton != "toolbox_only":
+        raise ValueError("unknown project skeleton: " + skeleton)
     contents = dict(BUNDLE["headers"])
-    contents.update({"prepare.py": BUNDLE["prepare"], "main.c": starter(skeleton),
-                     "工具箱速查_v" + version + ".md": BUNDLE["manual"]})
+    contents["prepare.py"] = BUNDLE["prepare"]
+    if skeleton != "toolbox_only":
+        contents["main.c"] = starter(skeleton)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.mkdir(exist_ok=False)
     created = []
     try:
         for name, content in contents.items():
             path = target / name
+            path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("x", encoding="utf-8") as stream:
                 created.append(path)
                 stream.write(content)
     except Exception:
         for path in created:
             path.unlink()
+        for directory in sorted((p for p in target.rglob("*") if p.is_dir()),
+                                key=lambda p: len(p.parts), reverse=True):
+            directory.rmdir()
         target.rmdir()
         raise
     print("已创建题目目录：" + str(target))
-    print("编辑 main.c；提交时运行同目录 prepare.py。")
+    if skeleton == "toolbox_only":
+        print("工具箱已创建；添加 C 源文件后，运行同目录 prepare.py。")
+    else:
+        print("编辑 main.c；提交时运行同目录 prepare.py。")
     print("旧题的头文件和 prepare.py 保持原版本，不随入口脚本更新。")
     return target
 
@@ -90,17 +103,29 @@ def cli(argv=None):
         if args[0] == "header":
             return generate_cli(["--header"] + args[1:])
         return generate_cli(args)
-    parser = argparse.ArgumentParser(description="C Toolbox: initialize a problem folder; Enter exports Markdown.")
+    parser = argparse.ArgumentParser(description="C Toolbox: create a problem folder; Enter exports Markdown.")
     parser.add_argument("--folder", help="noninteractive initialization; empty value exports the manual")
-    parser.add_argument("--skeleton", choices=list(SKELETONS), default=None)
+    parser.add_argument("--skeleton", choices=[key for key, _ in SKELETON_MENU], default=None)
     options = parser.parse_args(args)
     try:
-        answer = options.folder if options.folder is not None else input(
-            "题目文件夹（留空导出根目录 Markdown 手册）：")
+        if options.folder is None:
+            print("C Toolbox · 创建题目")
+            answer = input("题目目录（回车导出手册）：")
+        else:
+            answer = options.folder
         choice = options.skeleton or "blank"
-        if answer.strip() and options.folder is None and not (Path(answer.strip()) if Path(answer.strip()).is_absolute() else Path(__file__).resolve().parent / answer.strip()).exists():
-            print("输入骨架：" + " / ".join(SKELETONS))
-            choice = input("骨架（回车 blank）：").strip() or "blank"
+        if answer.strip() and options.folder is None and options.skeleton is None:
+            requested = Path(answer.strip()).expanduser()
+            target = requested if requested.is_absolute() else Path(__file__).resolve().parent / requested
+            if not target.exists():
+                print("\n选择程序框架")
+                for _, label in SKELETON_MENU:
+                    print(label)
+                selection = input("选择编号，直接生成项目（回车默认 1）：").strip() or "1"
+                choices = {str(index): key for index, (key, _) in enumerate(SKELETON_MENU, start=1)}
+                if selection not in choices:
+                    raise ValueError("请选择 1 到 6。")
+                choice = choices[selection]
         initialize_folder(answer, skeleton=choice)
     except (ValueError, OSError) as error:
         print(str(error), file=sys.stderr)

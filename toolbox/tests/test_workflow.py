@@ -33,8 +33,8 @@ class WorkflowTests(unittest.TestCase):
                 cwd=other, capture_output=True, text=True, encoding="utf-8")
             self.assertEqual(result.returncode, 0, result.stderr)
             folder = root / "练习/A"
-            self.assertEqual({p.name for p in folder.iterdir()}, set(tb.BUNDLE["headers"]) | {"main.c", "prepare.py", "工具箱速查_v" + tb.BUNDLE["catalog"]["version"] + ".md"})
-            self.assertIn('#include "ctb_io.h"', (folder / "main.c").read_text())
+            self.assertEqual({p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}, set(tb.BUNDLE["headers"]) | {"main.c", "prepare.py"})
+            self.assertIn('#include "ctb/io.h"', (folder / "main.c").read_text())
             original = (folder / "main.c").read_bytes()
             result = subprocess.run([sys.executable, str(folder / "prepare.py"), "--no-copy"],
                 cwd=other, capture_output=True, text=True, encoding="utf-8")
@@ -46,7 +46,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             manual = root / ("工具箱速查_v" + tb.BUNDLE["catalog"]["version"] + ".md")
             self.assertEqual(manual.read_text(encoding="utf-8"), tb.BUNDLE["manual"])
-            self.assertTrue((folder / manual.name).exists())
+            self.assertFalse((folder / manual.name).exists())
             again = subprocess.run([sys.executable, str(installer), "--folder", "练习/A"],
                 capture_output=True, text=True, encoding="utf-8")
             self.assertNotEqual(again.returncode, 0)

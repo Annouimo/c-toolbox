@@ -47,3 +47,4 @@ static void @NAME@_sort(@NAME@ *v, int (*compare)(const void *, const void *)) {
     if (v->len > 1) qsort(v->data, v->len, sizeof *v->data, compare);
 }
 static void @NAME@_free(@NAME@ *v) { free(v->data); *v = (@NAME@){0}; }
+static void @NAME@_swap(@NAME@ *a,@NAME@ *b) { @NAME@ value=*a;*a=*b;*b=value; }

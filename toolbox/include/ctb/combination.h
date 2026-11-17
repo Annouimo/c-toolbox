@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT-0 */
 #ifndef CTB_COMBINATION_H
 #define CTB_COMBINATION_H
-#include "ctb_core.h"
+#include "core.h"
 /* Owns indices, which are borrowed by the caller until next/free. */
 typedef struct {size_t *indices,n,k;bool started,finished;} Combination;
 static Combination combination_new(size_t n,size_t k){if(k>n)tb_fail("combination size exceeds population");Combination c={k?tb_resize(NULL,k,sizeof(size_t)):NULL,n,k,false,false};for(size_t i=0;i<k;++i)c.indices[i]=i;return c;}
