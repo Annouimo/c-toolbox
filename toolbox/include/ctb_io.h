@@ -5,9 +5,9 @@
 #include <errno.h>
 #include <math.h>
 #include <stdarg.h>
-typedef enum { IO_OK, IO_EOF, IO_FORMAT, IO_RANGE, IO_STREAM_ERROR } IOStatus;
-typedef struct { FILE *stream; } IOReader;
-static IOReader io_reader(FILE *stream) { IOReader r = {stream}; return r; }
+typedef enum { IO_OK, IO_EOF, IO_FORMAT, IO_RANGE, IO_STREAM_ERROR, IO_EXTRA_DATA } IOStatus;
+typedef struct { FILE *stream; bool line_pending; } IOReader;
+static IOReader io_reader(FILE *stream) { IOReader r = {stream, false}; return r; }
 static IOReader *tb_input(void) { static IOReader r; if (!r.stream) r.stream=stdin; return &r; }
 static void io_require(IOStatus s) { if(s!=IO_OK) tb_fail(s==IO_EOF?"unexpected EOF":s==IO_RANGE?"input out of range":s==IO_FORMAT?"invalid input":"stream error"); }
 /* Internal owned token; consumes a complete token and retains its delimiter. */
@@ -17,7 +17,7 @@ static char *tb_io_token(IOReader *r, IOStatus *status) {
     if(c==EOF) { *status=ferror(r->stream)?IO_STREAM_ERROR:IO_EOF; return NULL; }
     size_t n=0, cap=32; char *s=tb_resize(NULL,cap,1);
     do { if(!c) *status=IO_FORMAT; if(n==cap-1) {cap=tb_capacity(cap,tb_add_size(n,2));s=tb_resize(s,cap,1);} s[n++]=(char)c; c=fgetc(r->stream); } while(c!=EOF && !isspace((unsigned char)c));
-    s[n]=0;
+    s[n]=0; r->line_pending=true;
     if(ferror(r->stream) || (c!=EOF && ungetc(c,r->stream)==EOF)) *status=IO_STREAM_ERROR;
     return s;
 }
@@ -84,6 +84,7 @@ static double read_double(void) { DoubleReadResult r=try_read_double(); io_requi
 typedef struct { IOStatus status; char value; } CharReadResult;
 static CharReadResult io_try_read_char(IOReader *r, bool raw) {
     int c; do { c=fgetc(r->stream); } while(!raw && c!=EOF && isspace((unsigned char)c));
+    if(c!=EOF) r->line_pending = c!='\n';
     CharReadResult result={c==EOF?(ferror(r->stream)?IO_STREAM_ERROR:IO_EOF):IO_OK,c==EOF?0:(char)c};return result;
 }
 static CharReadResult try_read_char(void) { return io_try_read_char(tb_input(),false); }
@@ -94,6 +95,7 @@ static void io_skip_line(void) {
     FILE *f=tb_input()->stream;int c;
     while((c=fgetc(f))!=EOF && c!='\n' && c!='\r') {}
     if(c=='\r') {c=fgetc(f);if(c!=EOF && c!='\n' && ungetc(c,f)==EOF) io_require(IO_STREAM_ERROR);}
+    tb_input()->line_pending=false;
     if(ferror(f)) io_require(IO_STREAM_ERROR);
 }
 static void io_skip_whitespace(void) {

@@ -1,10 +1,12 @@
+> 模块化迁移开发版：以下容器接口仍有部分旧式输出指针，后续统一；旧生成器暂留内部回归测试。
+
 # C Toolbox 速查 · v@VERSION@
 
 设计者：Annouimo。面向熟悉高级语言、需要用 C99 解题的使用者。只列常用公开接口；Ctrl+F 搜索任务或函数名。
 
 ## 开始与提交
 
-运行入口脚本，只填写一次题目文件夹；支持子目录，路径相对入口脚本。留空在入口脚本旁导出本手册。新题目包含 main.c、c_toolbox.h、prepare.py；旧目录不覆盖，已有题目会提示运行其中的 prepare.py。每题保留自己的版本，更新入口脚本不改变旧题。
+运行入口脚本，填写题目文件夹并选择输入骨架；支持子目录，路径相对入口脚本。留空在入口脚本旁导出本手册。新题目包含 main.c、按模块划分的 ctb_*.h、prepare.py 和本手册；旧目录不覆盖，已有题目会提示运行其中的 prepare.py。每题保留自己的版本，更新入口脚本不改变旧题。
 
 ~~~sh
 python prepare.py           # 单个 C 文件直接处理；多个先选；展开、编译检查、复制
@@ -23,33 +25,22 @@ cc -std=c99 -O2 main.c -o main -lm
 
 ## 输入输出
 
-| 想做什么 | 调用 |
+基础 IO：`#include "ctb_io.h"`。普通 read 返回值，失败退出；try_read 返回含 status、value 的结构体，使用 `r.status == IO_OK` 判断成功，不能当布尔值。
+
+| 任务 | 接口 |
 | --- | --- |
-| 读一个整数 / long long / double | read_int() / read_ll() / read_double() |
-| 读单词 / 有效文本行 | read_word() / read_line()，返回 String |
-| 读字符，跳过空白 | read_char() |
-| 保留空行和行首尾空格 | read_line_raw() |
-| 数字后精确读下一整行，允许为空 | read_next_line_raw() |
-| 读当前行剩余内容 / 原始字符 | read_rest() / read_char_raw() |
-| 结束当前 token 所在行 / 明确丢弃行尾 | finish_line() / discard_line() |
-| 批量读取 n 项 | read_ints(n) / read_lls(n) / read_doubles(n) / read_words(n) |
-| 输出 String / 整数 | print_string(&s,end) / print_int(x,end) / print_ll(x,end) |
-| 输出小数 | print_double(x,小数位数,end) |
-| 输出数值容器 | print_ints(&v,sep,end)；lls 同形；print_doubles(&v,精度,sep,end) |
-| 输出字符串列表 | print_strings(&words,sep,end) |
+| 标量 | read_int / read_ll / read_uint / read_ull / read_double |
+| 检查读取 | try_read_int() 等，返回值失败时为零，但仅成功时有效 |
+| 字符 | read_char() 跳过空白；read_char_raw() 保留空白 |
+| 输出 | print_int(x)、print_text("YES\\n")、print_newline() |
+| 小数 | print_double(x)、print_fixed(x, digits) |
+| 输入控制 | io_skip_line()、io_skip_whitespace() |
+| 文件 | IOReader r = io_reader(file); io_try_read_int(&r) 等 |
 
-默认读取跳过分隔空白；read_line 还跳过空白行、去掉两端空白，保留内部空格。raw 保留空白，只去掉行结束符。数字和文本在同一行时，read_line 读取该行剩余的有效文本。n 来自整数输入时，先检查非负。
+字符串读写随 `ctb_string.h`：read_word()、read_line()、read_line_raw()、read_rest()；检查版返回 StringReadResult。line 跳过空白行并修剪两端；raw 保留空行和两端空白，移除行终止符。数值之后 raw 从当前分隔符开始，明确丢弃行尾用 io_skip_line()。返回的 String 由调用者 string_free。
 
-读到 EOF（IO_OK 的值为 0，不能直接当 bool）：
+数值向量分别引入 `ctb_vec_int.h`、`ctb_vec_ll.h`、`ctb_vec_double.h`，提供 read_ints/read_lls/read_doubles(count) 和 print_ints/print_lls/print_doubles(&v, separator, end)。每个头文件只定义对应类型。返回向量由调用者释放。
 
-~~~c
-int x;
-IOStatus status;
-while ((status = try_read_int(&x)) == IO_OK) print_int(x, "\n");
-if (status != IO_EOF) io_require(status);
-~~~
-
-try_read_* 区分 IO_OK / IO_EOF / IO_FORMAT / IO_RANGE / IO_STREAM_ERROR；失败不改输出变量。String 输出变量先初始化。普通 read_* 遇错直接报错退出。同一输入流不要混用 scanf/getchar 与工具箱读取；输出可混用 printf。
 
 ## String 与字符串列表
 

@@ -1,7 +1,7 @@
 name: C Toolbox prototype
 on:
   push:
-    branches: [main, feat/c-toolbox-prototype]
+    branches: [main, feat/c-toolbox-prototype, feat/modular-api-migration]
     paths: ['toolbox/**', '.github/workflows/toolbox.yml']
   pull_request:
     paths: ['toolbox/**', '.github/workflows/toolbox.yml']
@@ -41,6 +41,10 @@ jobs:
           TOOLBOX_CFLAGS: ${{ matrix.sanitize }}
           ASAN_OPTIONS: detect_leaks=1
         run: python toolbox/tests/test_workflow.py
+      - name: Test modular headers and input skeletons
+        env:
+          CC: ${{ matrix.cc }}
+        run: python toolbox/tests/test_modular.py
       - name: Verify package reproducibility
         run: python toolbox/build.py --check
   package:
