@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: MIT-0 */
+static void string_push(String *s, char ch);
 static String string_slice_step(const String *s,size_t first,size_t last,size_t step) {
     if(!step || first>last || last>s->len)tb_fail("invalid string slice");
     String result=string_new();
