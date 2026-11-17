@@ -1,10 +1,6 @@
-name: C Toolbox prototype
+name: Check and build C Toolbox
 on:
-  push:
-    branches: [main, feat/c-toolbox-prototype, feat/modular-api-migration]
-    paths: ['toolbox/**', '.github/workflows/toolbox.yml']
-  pull_request:
-    paths: ['toolbox/**', '.github/workflows/toolbox.yml']
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
@@ -60,9 +56,12 @@ jobs:
         with:
           python-version: '3.12'
       - run: python toolbox/build.py
+      - id: version
+        shell: bash
+        run: python -c 'import json, os; v=json.load(open("toolbox/catalog.json", encoding="utf-8"))["version"]; print("version=" + v, file=open(os.environ["GITHUB_OUTPUT"], "a"))'
       - uses: actions/upload-artifact@v4
         with:
-          name: c-toolbox-v0.6.0-preview
-          path: toolbox/dist/c_toolbox_v0.6.0.py
+          name: c-toolbox-release-candidate
+          path: toolbox/dist/c_toolbox_v${{ steps.version.outputs.version }}.py
           if-no-files-found: error
 
