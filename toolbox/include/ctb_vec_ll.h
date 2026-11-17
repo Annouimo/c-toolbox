@@ -15,7 +15,7 @@ static void LongLongVector_push(LongLongVector *v, long long value) {
     LongLongVector_reserve(v, tb_add_size(v->len, 1));
     v->data[v->len++] = value;
 }
-static bool LongLongVector_pop(LongLongVector *v, long long *out) {
+static bool LongLongVector_pop_into(LongLongVector *v, long long *out) {
     if (!v->len) return false;
     --v->len;
     if (out) *out = v->data[v->len];
@@ -52,7 +52,7 @@ static void LongLongVector_sort(LongLongVector *v, int (*compare)(const void *, 
 static void LongLongVector_free(LongLongVector *v) { free(v->data); *v = (LongLongVector){0}; }
 
 /* SPDX-License-Identifier: MIT-0 */
-static bool LongLongVector_get(const LongLongVector *v, size_t pos, long long *out) {
+static bool LongLongVector_get_into(const LongLongVector *v, size_t pos, long long *out) {
     if (pos >= v->len) return false;
     if (out) *out = v->data[pos];
     return true;
@@ -62,11 +62,11 @@ static bool LongLongVector_set(LongLongVector *v, size_t pos, long long value) {
     v->data[pos] = value;
     return true;
 }
-static bool LongLongVector_front(const LongLongVector *v, long long *out) {
-    return LongLongVector_get(v, 0, out);
+static bool LongLongVector_front_into(const LongLongVector *v, long long *out) {
+    return LongLongVector_get_into(v, 0, out);
 }
-static bool LongLongVector_back(const LongLongVector *v, long long *out) {
-    return v->len && LongLongVector_get(v, v->len - 1, out);
+static bool LongLongVector_back_into(const LongLongVector *v, long long *out) {
+    return v->len && LongLongVector_get_into(v, v->len - 1, out);
 }
 /* Snapshot supports extending from the vector's own storage. */
 static void LongLongVector_extend(LongLongVector *v, long long const *items, size_t count) {
@@ -287,6 +287,31 @@ static LongLongVector LongLongVector_range(long long start, long long stop, long
         value += step;
     }
     return result;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
+typedef struct { bool ok; long long value; } LongLongVectorResult;
+static LongLongVectorResult LongLongVector_try_get(const LongLongVector *v,size_t pos){LongLongVectorResult r={false,(long long){0}};r.ok=LongLongVector_get_into(v,pos,&r.value);return r;}
+static long long LongLongVector_get(const LongLongVector *v,size_t pos){LongLongVectorResult r=LongLongVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
+static LongLongVectorResult LongLongVector_try_pop(LongLongVector *v){LongLongVectorResult r={false,(long long){0}};r.ok=LongLongVector_pop_into(v,&r.value);return r;}
+static long long LongLongVector_pop(LongLongVector *v){LongLongVectorResult r=LongLongVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
+static long long LongLongVector_front(const LongLongVector *v){return LongLongVector_get(v,0);}
+static long long LongLongVector_back(const LongLongVector *v){if(!v->len)tb_fail("back of empty vector");return LongLongVector_get(v,v->len-1);}
+static void LongLongVector_merge_sort(long long *data,long long *scratch,size_t n,int (*compare)(const long long *,const long long *)){
+    if(n<2)return;
+    size_t mid=n/2;
+    LongLongVector_merge_sort(data,scratch,mid,compare);LongLongVector_merge_sort(data+mid,scratch+mid,n-mid,compare);
+    size_t i=0,j=mid,k=0;
+    while(i<mid && j<n){if(compare(&data[i],&data[j])<=0)scratch[k++]=data[i++];else scratch[k++]=data[j++];}
+    while(i<mid)scratch[k++]=data[i++];
+    while(j<n)scratch[k++]=data[j++];
+    memcpy(data,scratch,n*sizeof *data);
+}
+/* Stable, typed comparison; no void-pointer casts required from callers. */
+static void LongLongVector_sort_by(LongLongVector *v,int (*compare)(const long long *,const long long *)){
+    if(!compare)tb_fail("null comparator");
+    if(v->len<2)return;
+    long long *scratch=tb_resize(NULL,v->len,sizeof *scratch);LongLongVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
 }
 
 static LongLongVector read_lls(size_t count) { LongLongVector v=LongLongVector_new();LongLongVector_reserve(&v,count);for(size_t i=0;i<count;++i) LongLongVector_push(&v,read_ll());return v;}

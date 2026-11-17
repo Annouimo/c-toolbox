@@ -169,3 +169,16 @@ static int cmp_int(const void *a, const void *b) {
 
 工程与脚本 MIT；模板及生成 C 代码、示例 MIT-0；手册正文 CC BY 4.0。
 作者 Annouimo · https://github.com/Annouimo/c-exam-kit 。生成的 C 答案可删除署名与注释。
+
+## 位运算与基础数学（模块化接口）
+
+| 头文件 | 接口与约定 |
+| --- | --- |
+| ctb_bits.h | bit_get/set/clear/toggle(value, bit)，最低位为 0，返回结果，不原地修改；bit_count(value) |
+| ctb_math.h | gcd(a,b)、lcm(a,b)，输入 long long，结果 unsigned long long；负数取绝对值，gcd(0,0)=0 |
+| ctb_math.h | factorial(n) 返回 unsigned long long；integer_power(base, exponent) 返回 long long，指数非负，0^0=1 |
+| ctb_math.h | try_factorial / try_lcm / try_integer_power 返回 ok 与 value；失败值仅作占位 |
+| ctb_math.h | round_digits(x, digits)，中点远离零，负 digits 表示向十、百位舍入；浮点表示会影响中点 |
+| ctb_math.h | nearly_equal(a,b,abs_tol,rel_tol)、is_prime(n)、polynomial_value(coefficients,count,x)，系数按次数升序 |
+
+ctb_vec_*.h 的 get/front/back/pop 直接返回元素，非法访问或空容器退出；try_get、try_pop 返回 ok/value。旧输出指针版本暂以 _into 后缀保留。sort_by 使用对应元素类型的比较器，稳定排序；sort 保留底层 qsort 比较器接口。

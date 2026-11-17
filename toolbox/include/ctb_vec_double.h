@@ -15,7 +15,7 @@ static void DoubleVector_push(DoubleVector *v, double value) {
     DoubleVector_reserve(v, tb_add_size(v->len, 1));
     v->data[v->len++] = value;
 }
-static bool DoubleVector_pop(DoubleVector *v, double *out) {
+static bool DoubleVector_pop_into(DoubleVector *v, double *out) {
     if (!v->len) return false;
     --v->len;
     if (out) *out = v->data[v->len];
@@ -52,7 +52,7 @@ static void DoubleVector_sort(DoubleVector *v, int (*compare)(const void *, cons
 static void DoubleVector_free(DoubleVector *v) { free(v->data); *v = (DoubleVector){0}; }
 
 /* SPDX-License-Identifier: MIT-0 */
-static bool DoubleVector_get(const DoubleVector *v, size_t pos, double *out) {
+static bool DoubleVector_get_into(const DoubleVector *v, size_t pos, double *out) {
     if (pos >= v->len) return false;
     if (out) *out = v->data[pos];
     return true;
@@ -62,11 +62,11 @@ static bool DoubleVector_set(DoubleVector *v, size_t pos, double value) {
     v->data[pos] = value;
     return true;
 }
-static bool DoubleVector_front(const DoubleVector *v, double *out) {
-    return DoubleVector_get(v, 0, out);
+static bool DoubleVector_front_into(const DoubleVector *v, double *out) {
+    return DoubleVector_get_into(v, 0, out);
 }
-static bool DoubleVector_back(const DoubleVector *v, double *out) {
-    return v->len && DoubleVector_get(v, v->len - 1, out);
+static bool DoubleVector_back_into(const DoubleVector *v, double *out) {
+    return v->len && DoubleVector_get_into(v, v->len - 1, out);
 }
 /* Snapshot supports extending from the vector's own storage. */
 static void DoubleVector_extend(DoubleVector *v, double const *items, size_t count) {
@@ -268,6 +268,31 @@ static double DoubleVector_sum(const DoubleVector *v) {
     double result = (double)total;
     if (!isfinite(result)) tb_fail("floating sum outside double range");
     return result;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
+typedef struct { bool ok; double value; } DoubleVectorResult;
+static DoubleVectorResult DoubleVector_try_get(const DoubleVector *v,size_t pos){DoubleVectorResult r={false,(double){0}};r.ok=DoubleVector_get_into(v,pos,&r.value);return r;}
+static double DoubleVector_get(const DoubleVector *v,size_t pos){DoubleVectorResult r=DoubleVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
+static DoubleVectorResult DoubleVector_try_pop(DoubleVector *v){DoubleVectorResult r={false,(double){0}};r.ok=DoubleVector_pop_into(v,&r.value);return r;}
+static double DoubleVector_pop(DoubleVector *v){DoubleVectorResult r=DoubleVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
+static double DoubleVector_front(const DoubleVector *v){return DoubleVector_get(v,0);}
+static double DoubleVector_back(const DoubleVector *v){if(!v->len)tb_fail("back of empty vector");return DoubleVector_get(v,v->len-1);}
+static void DoubleVector_merge_sort(double *data,double *scratch,size_t n,int (*compare)(const double *,const double *)){
+    if(n<2)return;
+    size_t mid=n/2;
+    DoubleVector_merge_sort(data,scratch,mid,compare);DoubleVector_merge_sort(data+mid,scratch+mid,n-mid,compare);
+    size_t i=0,j=mid,k=0;
+    while(i<mid && j<n){if(compare(&data[i],&data[j])<=0)scratch[k++]=data[i++];else scratch[k++]=data[j++];}
+    while(i<mid)scratch[k++]=data[i++];
+    while(j<n)scratch[k++]=data[j++];
+    memcpy(data,scratch,n*sizeof *data);
+}
+/* Stable, typed comparison; no void-pointer casts required from callers. */
+static void DoubleVector_sort_by(DoubleVector *v,int (*compare)(const double *,const double *)){
+    if(!compare)tb_fail("null comparator");
+    if(v->len<2)return;
+    double *scratch=tb_resize(NULL,v->len,sizeof *scratch);DoubleVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
 }
 
 static DoubleVector read_doubles(size_t count) { DoubleVector v=DoubleVector_new();DoubleVector_reserve(&v,count);for(size_t i=0;i<count;++i) DoubleVector_push(&v,read_double());return v;}

@@ -15,7 +15,7 @@ static void IntVector_push(IntVector *v, int value) {
     IntVector_reserve(v, tb_add_size(v->len, 1));
     v->data[v->len++] = value;
 }
-static bool IntVector_pop(IntVector *v, int *out) {
+static bool IntVector_pop_into(IntVector *v, int *out) {
     if (!v->len) return false;
     --v->len;
     if (out) *out = v->data[v->len];
@@ -52,7 +52,7 @@ static void IntVector_sort(IntVector *v, int (*compare)(const void *, const void
 static void IntVector_free(IntVector *v) { free(v->data); *v = (IntVector){0}; }
 
 /* SPDX-License-Identifier: MIT-0 */
-static bool IntVector_get(const IntVector *v, size_t pos, int *out) {
+static bool IntVector_get_into(const IntVector *v, size_t pos, int *out) {
     if (pos >= v->len) return false;
     if (out) *out = v->data[pos];
     return true;
@@ -62,11 +62,11 @@ static bool IntVector_set(IntVector *v, size_t pos, int value) {
     v->data[pos] = value;
     return true;
 }
-static bool IntVector_front(const IntVector *v, int *out) {
-    return IntVector_get(v, 0, out);
+static bool IntVector_front_into(const IntVector *v, int *out) {
+    return IntVector_get_into(v, 0, out);
 }
-static bool IntVector_back(const IntVector *v, int *out) {
-    return v->len && IntVector_get(v, v->len - 1, out);
+static bool IntVector_back_into(const IntVector *v, int *out) {
+    return v->len && IntVector_get_into(v, v->len - 1, out);
 }
 /* Snapshot supports extending from the vector's own storage. */
 static void IntVector_extend(IntVector *v, int const *items, size_t count) {
@@ -287,6 +287,31 @@ static IntVector IntVector_range(int start, int stop, int step) {
         value += step;
     }
     return result;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
+typedef struct { bool ok; int value; } IntVectorResult;
+static IntVectorResult IntVector_try_get(const IntVector *v,size_t pos){IntVectorResult r={false,(int){0}};r.ok=IntVector_get_into(v,pos,&r.value);return r;}
+static int IntVector_get(const IntVector *v,size_t pos){IntVectorResult r=IntVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
+static IntVectorResult IntVector_try_pop(IntVector *v){IntVectorResult r={false,(int){0}};r.ok=IntVector_pop_into(v,&r.value);return r;}
+static int IntVector_pop(IntVector *v){IntVectorResult r=IntVector_try_pop(v);if(!r.ok)tb_fail("pop of empty vector");return r.value;}
+static int IntVector_front(const IntVector *v){return IntVector_get(v,0);}
+static int IntVector_back(const IntVector *v){if(!v->len)tb_fail("back of empty vector");return IntVector_get(v,v->len-1);}
+static void IntVector_merge_sort(int *data,int *scratch,size_t n,int (*compare)(const int *,const int *)){
+    if(n<2)return;
+    size_t mid=n/2;
+    IntVector_merge_sort(data,scratch,mid,compare);IntVector_merge_sort(data+mid,scratch+mid,n-mid,compare);
+    size_t i=0,j=mid,k=0;
+    while(i<mid && j<n){if(compare(&data[i],&data[j])<=0)scratch[k++]=data[i++];else scratch[k++]=data[j++];}
+    while(i<mid)scratch[k++]=data[i++];
+    while(j<n)scratch[k++]=data[j++];
+    memcpy(data,scratch,n*sizeof *data);
+}
+/* Stable, typed comparison; no void-pointer casts required from callers. */
+static void IntVector_sort_by(IntVector *v,int (*compare)(const int *,const int *)){
+    if(!compare)tb_fail("null comparator");
+    if(v->len<2)return;
+    int *scratch=tb_resize(NULL,v->len,sizeof *scratch);IntVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
 }
 
 static IntVector read_ints(size_t count) { IntVector v=IntVector_new();IntVector_reserve(&v,count);for(size_t i=0;i<count;++i) IntVector_push(&v,read_int());return v;}
