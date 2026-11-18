@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct { size_t begin, end; } IndexRange;
+
 static void tb_fail(const char *message) {
     fprintf(stderr, "C Toolbox: %s\n", message);
     exit(EXIT_FAILURE);

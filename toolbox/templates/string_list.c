@@ -73,10 +73,24 @@ static StringList string_list_slice(const StringList *list, size_t pos, size_t c
 static StringList string_list_clone(const StringList *list) {
     return string_list_slice(list, 0, list->len);
 }
-static size_t string_list_find(const StringList *list, const String *value) {
-    for (size_t i = 0; i < list->len; ++i)
-        if (!strcmp(string_cstr(&list->data[i]), string_cstr(value))) return i;
+static size_t string_list_find_text(const StringList *list, const char *text, size_t start) {
+    for (size_t i = start; i < list->len; ++i) {
+        if (strcmp(string_cstr(&list->data[i]), text) == 0) return i;
+    }
     return SIZE_MAX;
+}
+static bool string_list_contains_text(const StringList *list, const char *text) {
+    return string_list_find_text(list, text, 0) != SIZE_MAX;
+}
+static size_t string_list_count_text(const StringList *list, const char *text) {
+    size_t count = 0;
+    for (size_t i = 0; i < list->len; ++i) {
+        if (strcmp(string_cstr(&list->data[i]), text) == 0) ++count;
+    }
+    return count;
+}
+static size_t string_list_find(const StringList *list, const String *value) {
+    return string_list_find_text(list, string_cstr(value), 0);
 }
 static bool string_list_contains(const StringList *list, const String *value) {
     return string_list_find(list, value) != SIZE_MAX;

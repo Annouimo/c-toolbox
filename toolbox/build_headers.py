@@ -24,6 +24,27 @@ def headers():
     def read_template(name):
         return (ROOT / 'templates' / name).read_text(encoding='utf-8')
 
+    def add_at(name, ctype, parameters, index):
+        if ctype == 'double':
+            check = 'if (!isfinite(result)) tb_fail("nonfinite element addition");'
+            calculate = 'double result = value + delta;'
+        else:
+            minimum, maximum = ('INT_MIN', 'INT_MAX') if ctype == 'int' else ('LLONG_MIN', 'LLONG_MAX')
+            check = (f'if ((delta > 0 && value > {maximum} - delta) ||\n'
+                     f'        (delta < 0 && value < {minimum} - delta))\n'
+                     '        tb_fail("element addition overflow");')
+            calculate = f'{ctype} result = value + delta;'
+        statements = (calculate, check) if ctype == 'double' else (check, calculate)
+        return f"""
+static void {name}_add_at({name} *v, {parameters}, {ctype} delta) {{
+    {index}
+    {ctype} value = v->data[index];
+    {statements[0]}
+    {statements[1]}
+    v->data[index] = result;
+}}
+"""
+
     matrix_base = read_template('matrix_base.c')
     matrix_numeric = read_template('matrix_typed.c')
     matrix_print = read_template('matrix_print.c')
@@ -46,6 +67,7 @@ def headers():
                 .replace('@PRECISION@', ', int digits' if suffix == 'double' else '')
                 .replace('@PRINT@', 'print_fixed(value, digits, "")' if suffix == 'double'
                          else f'print_{suffix}(value, "")'))
+        code += add_at(name, ctype, 'size_t row, size_t col', f'size_t index = {name}_index(v, row, col);')
         path = f'ctb/matrix/{filename}.h'
         deps = ['../io.h', 'detail/border.h']
         if integer:
@@ -66,6 +88,14 @@ def headers():
         if ctype == 'char':
             code += read_template('matrix_char_io.c')
             deps.append('../string.h')
+        else:
+            code += """
+static BoolMatrix read_bool_matrix(size_t rows, size_t cols) {
+    BoolMatrix matrix = BoolMatrix_new(rows, cols);
+    for (size_t i = 0; i < rows * cols; ++i) matrix.data[i] = read_bool();
+    return matrix;
+}
+"""
         result[path] = wrap(path, code, deps)
 
     string_files = ('string.c', 'string_extra.c', 'string_format.c', 'string_objects.c',
@@ -79,12 +109,19 @@ def headers():
     result['ctb/string_list.h'] = wrap('ctb/string_list.h', list_code, ['string.h', 'vector/index.h'])
     for suffix,name,ctype,reader,printer in [('int','IntVector','int','int','int'),('ll','LongLongVector','long long','ll','ll'),('double','DoubleVector','double','double','double'),('size','IndexVector','size_t','ull','ull'),('char','CharVector','char','char','char'),('bool','BoolVector','bool',None,None)]:
         code=template('vector')
-        for p in catalog['vector']['numeric_templates'].get(ctype, []):code+='\n'+(ROOT/'templates'/p).read_text(encoding="utf-8")
+        numeric_templates = catalog['vector']['numeric_templates'].get(ctype, [])
+        for filename in numeric_templates:
+            code += '\n' + read_template(filename)
+        if not numeric_templates:
+            code += '\n' + read_template('vector_value.c')
+        code += '\n' + read_template('vector_run.c')
         for operation in ('get','pop','front','back'):
             code=re.sub(r'@NAME@_' + operation + r'\b', '@NAME@_' + operation + '_into', code)
         code = code.replace('@NAME@_set(', '@NAME@_try_set(')
         code += '\n' + (ROOT/'templates/vector_public.c').read_text(encoding="utf-8")
         code=code.replace('@NAME@',name).replace('@TYPE@',ctype).replace('@MIN@','LLONG_MIN' if suffix=='ll' else 'INT_MIN').replace('@MAX@','LLONG_MAX' if suffix=='ll' else 'INT_MAX')
+        if suffix in ('int', 'll', 'double'):
+            code += add_at(name, ctype, 'size_t pos', 'if (pos >= v->len) tb_fail("vector index out of range");\n    size_t index = pos;')
         if reader is not None:
             code+=f'\nstatic {name} read_{suffix}s(size_t count) {{ {name} v={name}_new();{name}_reserve(&v,count);for(size_t i=0;i<count;++i) {name}_push(&v,read_{reader}());return v;}}\n'
             if suffix=='double':
@@ -93,6 +130,12 @@ def headers():
                 code+=f'\nstatic void print_{suffix}s(const {name} *v,const char *sep,const char *end) {{for(size_t i=0;i<v->len;++i){{if(i)print_text(sep,"");print_{printer}(v->data[i],"");}}print_text("",end);}}\n'
         if suffix == 'bool':
             code += """
+static BoolVector read_bools(size_t count) {
+    BoolVector v = BoolVector_new();
+    BoolVector_reserve(&v, count);
+    for (size_t i = 0; i < count; ++i) BoolVector_push(&v, read_bool());
+    return v;
+}
 static void print_bools(const BoolVector *v, const char *sep, const char *end) {
     for (size_t i = 0; i < v->len; ++i) {
         if (i) print_text(sep, "");

@@ -168,4 +168,12 @@ static void print_double_matrix(const DoubleMatrix *m, int digits,
     print_text("", end);
 }
 
+static void DoubleMatrix_add_at(DoubleMatrix *v, size_t row, size_t col, double delta) {
+    size_t index = DoubleMatrix_index(v, row, col);
+    double value = v->data[index];
+    double result = value + delta;
+    if (!isfinite(result)) tb_fail("nonfinite element addition");
+    v->data[index] = result;
+}
+
 #endif

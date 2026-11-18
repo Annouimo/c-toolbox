@@ -1,5 +1,5 @@
 {
-  "version": "0.10.0",
+  "version": "0.11.0",
   "modules": {
     "core": {
       "template": "core.c",
@@ -33,24 +33,29 @@
       ],
       "numeric_templates": {
         "int": [
+          "vector_value.c",
           "vector_numeric.c",
           "vector_sum_integer.c",
           "vector_range.c"
         ],
         "long long": [
+          "vector_value.c",
           "vector_numeric.c",
           "vector_sum_integer.c",
           "vector_range.c"
         ],
         "double": [
+          "vector_value.c",
           "vector_numeric.c",
           "vector_sum_real.c"
         ],
         "unsigned int": [
+          "vector_value.c",
           "vector_numeric.c",
           "vector_sum_unsigned.c"
         ],
         "unsigned long long": [
+          "vector_value.c",
           "vector_numeric.c",
           "vector_sum_unsigned.c"
         ]

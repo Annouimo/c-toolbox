@@ -169,4 +169,14 @@ static void print_ll_matrix(const LongLongMatrix *m,
     print_text("", end);
 }
 
+static void LongLongMatrix_add_at(LongLongMatrix *v, size_t row, size_t col, long long delta) {
+    size_t index = LongLongMatrix_index(v, row, col);
+    long long value = v->data[index];
+    if ((delta > 0 && value > LLONG_MAX - delta) ||
+        (delta < 0 && value < LLONG_MIN - delta))
+        tb_fail("element addition overflow");
+    long long result = value + delta;
+    v->data[index] = result;
+}
+
 #endif

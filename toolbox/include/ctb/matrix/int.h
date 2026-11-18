@@ -169,4 +169,14 @@ static void print_int_matrix(const IntMatrix *m,
     print_text("", end);
 }
 
+static void IntMatrix_add_at(IntMatrix *v, size_t row, size_t col, int delta) {
+    size_t index = IntMatrix_index(v, row, col);
+    int value = v->data[index];
+    if ((delta > 0 && value > INT_MAX - delta) ||
+        (delta < 0 && value < INT_MIN - delta))
+        tb_fail("element addition overflow");
+    int result = value + delta;
+    v->data[index] = result;
+}
+
 #endif

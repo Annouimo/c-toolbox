@@ -198,6 +198,35 @@ static char CharVector_reduce_ctx(const CharVector *v,char initial,char (*combin
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static size_t CharVector_find_from(const CharVector *v, char value, size_t start) {
+    for (size_t i = start; i < v->len; ++i) if (v->data[i] == value) return i;
+    return SIZE_MAX;
+}
+static size_t CharVector_find(const CharVector *v, char value) {
+    return CharVector_find_from(v, value, 0);
+}
+static bool CharVector_contains(const CharVector *v, char value) {
+    return CharVector_find(v, value) != SIZE_MAX;
+}
+static size_t CharVector_count(const CharVector *v, char value) {
+    size_t count = 0;
+    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
+    return count;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
+static IndexRange CharVector_longest_run(const CharVector *v, char value) {
+    IndexRange best = {0, 0};
+    size_t start = 0;
+    for (size_t i = 0; i < v->len; ++i) {
+        if (!(v->data[i] == value)) start = i + 1;
+        else if (i + 1 - start > best.end - best.begin)
+            best = (IndexRange){start, i + 1};
+    }
+    return best;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; char value; } CharVectorResult;
 static CharVectorResult CharVector_try_get(const CharVector *v,size_t pos){CharVectorResult r={0};r.ok=CharVector_get_into(v,pos,&r.value);return r;}
 static char CharVector_get(const CharVector *v,size_t pos){CharVectorResult r=CharVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}

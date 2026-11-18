@@ -39,7 +39,7 @@ int main(void){
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.10.0.py'
+        script=ROOT/'dist/c_toolbox_v0.11.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
@@ -52,7 +52,7 @@ int main(void){
                 subprocess.run([str(exe)],input=data,text=True,check=True)
 
     def test_typed_headers_in_prepared_submission(self):
-        script = ROOT / 'dist/c_toolbox_v0.10.0.py'
+        script = ROOT / 'dist/c_toolbox_v0.11.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp) / 'problem'
             subprocess.run([sys.executable, str(script), '--folder', str(folder), '--modular'],
@@ -134,7 +134,7 @@ int main(void){
     def test_single_header_submission(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp) / 'problem'
-            script = ROOT / 'dist/c_toolbox_v0.10.0.py'
+            script = ROOT / 'dist/c_toolbox_v0.11.0.py'
             subprocess.run([sys.executable, str(script), '--folder', str(folder)],
                            check=True, capture_output=True)
             self.assertEqual({p.name for p in folder.iterdir()}, {'main.c', 'c_toolbox.h', 'prepare.py'})
@@ -160,6 +160,45 @@ int main(void){
             for data in ('0\n', '1\nA X\n', '3\nA X\nA Y\nA Z\n'):
                 self.assertEqual(subprocess.check_output([str(full)], input=data, text=True),
                                  subprocess.check_output([str(compact)], input=data, text=True))
+
+    def test_container_updates_in_prepared_submission(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / 'problem'
+            script = ROOT / 'dist/c_toolbox_v0.11.0.py'
+            subprocess.run([sys.executable, str(script), '--folder', str(folder)],
+                           check=True, capture_output=True)
+            main = folder / 'main.c'
+            main.write_bytes((ROOT / 'tests/modular/container_updates.c').read_bytes())
+            subprocess.run([sys.executable, str(folder / 'prepare.py'), '--no-copy'],
+                           check=True, capture_output=True)
+            cc = os.environ.get('CC', 'gcc')
+            flags = shlex.split(os.environ.get('TOOLBOX_CFLAGS', ''))
+            modular = folder / 'modular.c'
+            includes = ('string_list.h', 'vector/int.h', 'vector/long_long.h',
+                        'vector/double.h', 'vector/char.h', 'vector/bool.h',
+                        'matrix/int.h', 'matrix/long_long.h', 'matrix/double.h',
+                        'matrix/bool.h')
+            modular.write_text(main.read_text().replace('#include "c_toolbox.h"',
+                               '\n'.join(f'#include "ctb/{name}"' for name in includes)))
+            for source in (main, folder / '.toolbox/submit.c', modular):
+                exe = folder / 'container_updates.exe'
+                subprocess.run([cc, '-std=c99', *flags, '-I', str(ROOT / 'include'), str(source),
+                                '-lm', '-o', str(exe)],
+                               check=True)
+                output = subprocess.check_output([str(exe)], input='1 0 1\n0 1 1 0\n', text=True)
+                self.assertEqual(output, '0 1\n1 0\n')
+                for mode, message in (
+                    ('int', 'element addition overflow'),
+                    ('matrix', 'element addition overflow'),
+                    ('double', 'nonfinite element addition'),
+                    ('vector-bound', 'vector index out of range'),
+                    ('narrow-bound', 'matrix index out of range'),
+                    ('bool', 'invalid input'),
+                ):
+                    result = subprocess.run([str(exe), mode], input='2\n', text=True,
+                                            capture_output=True)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(message, result.stderr)
 
     def test_scalar(self):
         with tempfile.TemporaryDirectory() as tmp:

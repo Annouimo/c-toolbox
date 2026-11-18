@@ -10,18 +10,6 @@ static int @NAME@_compare_desc(const void *a, const void *b) {
 }
 static void @NAME@_sort_asc(@NAME@ *v) { @NAME@_sort(v, @NAME@_compare_asc); }
 static void @NAME@_sort_desc(@NAME@ *v) { @NAME@_sort(v, @NAME@_compare_desc); }
-static size_t @NAME@_find(const @NAME@ *v, @TYPE@ value) {
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) return i;
-    return SIZE_MAX;
-}
-static bool @NAME@_contains(const @NAME@ *v, @TYPE@ value) {
-    return @NAME@_find(v, value) != SIZE_MAX;
-}
-static size_t @NAME@_count(const @NAME@ *v, @TYPE@ value) {
-    size_t count = 0;
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
-    return count;
-}
 static size_t @NAME@_lower_bound(const @NAME@ *v, @TYPE@ key) {
     size_t left = 0, right = v->len;
     while (left < right) {

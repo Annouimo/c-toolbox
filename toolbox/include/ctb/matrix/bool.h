@@ -124,4 +124,10 @@ static void print_bool_matrix(const BoolMatrix *m,
     print_text("", end);
 }
 
+static BoolMatrix read_bool_matrix(size_t rows, size_t cols) {
+    BoolMatrix matrix = BoolMatrix_new(rows, cols);
+    for (size_t i = 0; i < rows * cols; ++i) matrix.data[i] = read_bool();
+    return matrix;
+}
+
 #endif
