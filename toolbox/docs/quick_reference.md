@@ -72,9 +72,9 @@ line 默认跳过空白行、修剪首尾，保留内部空格；raw 保留空�
 
 | 任务 | 接口 |
 | --- | --- |
-| 创建 | _new()、_from(items,count)、_values(1,2,3)；整数 _range(start,stop,step) 不含 stop |
-| 修改 | _push、_insert、_erase、_set、_resize、_fill、_reverse、_swap、_clear、_free |
-| 取值 | _get(&v,i)、_at、_front、_back、_pop；检查版 _try_get / _try_pop 返回 ok/value |
+| 创建 | _new()、_filled(n,value)、_from(items,count)、_values(1,2,3)；整数 _range(start,stop,step) 不含 stop |
+| 修改 | _push、_insert、_erase、_set（越界报错）、_try_set（越界返回 false）、_resize、_fill、_reverse、_swap、_clear、_free |
+| 取值 | _get(&v,i)、_at、_front、_back、_pop；检查版 _try_get / _try_pop 返回 ok/value。_in_bounds 可判断负下标 |
 | 复制 | _clone、_slice(&v,pos,count)、_slice_step(&v,first,last,step)、_extend_vector，返回新对象的需释放 |
 | 排序 | 数值 _sort_asc/desc；_sort_by 使用类型明确的比较器、稳定排序；_sort 使用 qsort 形比较器；所有内置向量提供 _swap |
 | 查询 | _find/contains/count；_lower_bound/upper_bound 要求升序；_unique_sorted |
@@ -85,7 +85,7 @@ find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正�
 
 自定义 Vector 用 `ctb/vector/custom.h`。先定义元素类型，再用 `CTB_VECTOR_DEFINE(Name, Type)`。元素按值浅拷贝。含独立内存的字符串用 StringList。
 
-字符序列用 `ctb/vector/char.h` 的 `CharVector`，可保存内嵌 NUL。一维访问标记用 `ctb/vector/bool.h` 的 `BoolVector`。两者共享向量的基本容器操作。
+字符序列用 `ctb/vector/char.h` 的 `CharVector`，可保存内嵌 NUL。一维访问标记用 `ctb/vector/bool.h` 的 `BoolVector`。两者共享向量的基本容器操作。`print_bools(&v, sep, end)` 输出 0/1。
 
 ## 按题目选工具
 
@@ -97,13 +97,16 @@ find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正�
 
 | 任务 | 接口 |
 | --- | --- |
-| 创建与释放 | `_new(rows, cols)`、`_filled(rows, cols, value)`、`_empty(&m)`、`_free(&m)` |
-| 访问单格 | `_get(&m, r, c)`、`_set(&m, r, c, value)`。用 `_in_bounds` 判断是否在界内，或用 `_try_get` 取 `ok/value`。后两者接受负坐标并判为越界 |
+| 创建与释放 | `_new(rows, cols)`、`_filled(rows, cols, value)`、`_empty(&m)`、`_free(&m)`。用 `_rows`、`_cols`、`_size` 查询行数、列数和元素总数 |
+| 访问单格 | `_get(&m, r, c)`、`_set(&m, r, c, value)`。用 `_in_bounds` 判断是否在界内，或用 `_try_get` 取 `ok/value`。`_in_bounds`、`_try_get` 和 `_try_set` 都将负坐标判为越界。`_set` 越界报错，`_try_set` 返回 false |
 | 填充与画框 | `_fill`、`_fill_row`、`_fill_col`、`_fill_rect`、`_draw_rect`。带 `rect` 的接口在区域参数后接填充值 |
-| 复制与变换 | `_clone`、`_swap`、`_transpose`、`_slice(&m, r, c, h, w)`。复制、转置和切片返回独立矩阵 |
+| 复制与变换 | `_clone`、`_swap`、`_transpose`、`_slice(&m, r, c, h, w)`。复制、转置和切片返回独立矩阵。`_resize(&m, rows, cols, value)` 保留左上角重叠区域，新格子用 value 填充 |
 | 数值运算 | `_multiply(&a, &b)`、`_sum_rect(&m, r, c, h, w)`、`_sum_border(&m, r, c, h, w)`。边框的每格只算一次，含单行单列。整数求和返回 `long long`，整数求和及乘法检查溢出 |
-| 数值读写 | `read_int_matrix(rows, cols)`、`print_int_matrix(&m, sep, end)`。可换成 `ll` 或 `double`，double 输出在 `sep` 前加小数位数 |
-| 字符网格读写 | `read_char_matrix(rows, cols)` 保留空格并检查行宽，接在数字等单词之后时从下一行读起。`print_char_matrix(&m, end)` 在行间加换行，最后追加 `end` |
+| 数值读写 | `read_int_matrix(rows, cols)`、`print_int_matrix(&m, elem_sep, row_sep, end)`。可换成 `ll` 或 `double`，double 输出在 `elem_sep` 前加小数位数 |
+| 字符网格读写 | `read_char_matrix(rows, cols)` 保留空格并检查行宽，接在数字等单词之后时从下一行读起。`print_char_matrix(&m, "", "\n", "\n")` 按行输出 |
+| 布尔矩阵输出 | `print_bool_matrix(&m, elem_sep, row_sep, end)`，格子输出为 0 或 1 |
+
+矩阵打印只在相邻元素间插入 `elem_sep`，只在相邻行间插入 `row_sep`，整个矩阵结束后追加一次 `end`。
 
 ### 序列与区间
 

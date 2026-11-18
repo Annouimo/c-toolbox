@@ -19,14 +19,6 @@ static @NAME@ read_@SUFFIX@_matrix(size_t rows,size_t cols) {
     for(size_t i=0;i<n;++i)m.data[i]=@READ@();
     return m;
 }
-static void print_@SUFFIX@_matrix(const @NAME@ *m@PRECISION@,const char *separator,const char *end) {
-    for(size_t i=0;i<m->rows;++i) {
-        for(size_t j=0;j<m->cols;++j) { if(j)print_text(separator,"");@TYPE@ value = m->data[i*m->cols+j]; @PRINT@; }
-        print_char('\n',"");
-    }
-    print_text("",end);
-}
-
 static @ACCUMULATOR@ @NAME@_sum_region(const @NAME@ *m, size_t row, size_t col,
                                       size_t height, size_t width, bool border) {
     @NAME@_check_rect(m, row, col, height, width);

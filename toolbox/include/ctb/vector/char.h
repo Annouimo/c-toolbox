@@ -58,7 +58,7 @@ static bool CharVector_get_into(const CharVector *v, size_t pos, char *out) {
     if (out) *out = v->data[pos];
     return true;
 }
-static bool CharVector_set(CharVector *v, size_t pos, char value) {
+static bool CharVector_try_set(CharVector *v, size_t pos, char value) {
     if (pos >= v->len) return false;
     v->data[pos] = value;
     return true;
@@ -220,6 +220,18 @@ static void CharVector_sort_by(CharVector *v,int (*compare)(const char *,const c
     if(!compare)tb_fail("null comparator");
     if(v->len<2)return;
     char *scratch=tb_resize(NULL,v->len,sizeof *scratch);CharVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
+}
+
+static CharVector CharVector_filled(size_t length, char value) {
+    CharVector v = CharVector_new();
+    CharVector_resize(&v, length, value);
+    return v;
+}
+static bool CharVector_in_bounds(const CharVector *v, intmax_t pos) {
+    return pos >= 0 && (uintmax_t)pos < v->len;
+}
+static void CharVector_set(CharVector *v, size_t pos, char value) {
+    if (!CharVector_try_set(v, pos, value)) tb_fail("vector index out of range");
 }
 
 static CharVector read_chars(size_t count) { CharVector v=CharVector_new();CharVector_reserve(&v,count);for(size_t i=0;i<count;++i) CharVector_push(&v,read_char());return v;}

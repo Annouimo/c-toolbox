@@ -90,6 +90,26 @@ for (size_t r = 0; r < height; ++r) \
 memcpy(out.data + r * width, m->data + (row + r) * m->cols + col, \
 width * sizeof *out.data); \
 return out; \
+} \
+static bool CTB_JOIN(Name,_try_set)(Name *m, intmax_t row, intmax_t col, Type value) { \
+if (!CTB_JOIN(Name,_in_bounds)(m, row, col)) return false; \
+CTB_JOIN(Name,_set)(m, (size_t)row, (size_t)col, value); \
+return true; \
+} \
+static size_t CTB_JOIN(Name,_rows)(const Name *m) { return m->rows; } \
+static size_t CTB_JOIN(Name,_cols)(const Name *m) { return m->cols; } \
+static size_t CTB_JOIN(Name,_size)(const Name *m) { return m->rows * m->cols; } \
+static void CTB_JOIN(Name,_resize)(Name *m, size_t rows, size_t cols, Type value) { \
+if (rows == m->rows && cols == m->cols) return; \
+Name out = CTB_JOIN(Name,_filled)(rows, cols, value); \
+size_t common_rows = rows < m->rows ? rows : m->rows; \
+size_t common_cols = cols < m->cols ? cols : m->cols; \
+if (common_cols) \
+for (size_t r = 0; r < common_rows; ++r) \
+memcpy(out.data + r * cols, m->data + r * m->cols, \
+common_cols * sizeof *out.data); \
+CTB_JOIN(Name,_free)(m); \
+*m = out; \
 }
 
 #endif

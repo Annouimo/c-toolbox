@@ -1,5 +1,6 @@
-# C Toolbox v0.9.0
+# C Toolbox v0.9.1
 
-- 新增 CharVector、BoolVector、CharMatrix 和 BoolMatrix。字符矩阵按行读写，保留空格并检查行宽。
-- 矩阵新增填值、坐标检查、行列填充、矩形填充、画边框和切片。数值矩阵新增矩形求和与边框求和。
-- 速查手册用表格列出矩阵接口及读写约定。
+- 新增布尔向量和布尔矩阵的 `0/1` 输出。
+- 矩阵打印统一使用 `elem_sep, row_sep, end`。例如 `print_int_matrix(&m, " ", "\n", "\n")`。迁移旧调用时需要补上行间分隔符，字符矩阵还需指定行内分隔符。
+- Vector 和 Matrix 的 `set` 统一为越界报错。原来检查 Vector `set` 返回值的调用请换成 `try_set`。
+- Vector 新增 `filled`、`in_bounds`。Matrix 新增尺寸查询和 `resize`，缩放保留左上角重叠区域。

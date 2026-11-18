@@ -90,6 +90,27 @@ static LongLongMatrix LongLongMatrix_slice(const LongLongMatrix *m, size_t row, 
                    width * sizeof *out.data);
     return out;
 }
+
+static bool LongLongMatrix_try_set(LongLongMatrix *m, intmax_t row, intmax_t col, long long value) {
+    if (!LongLongMatrix_in_bounds(m, row, col)) return false;
+    LongLongMatrix_set(m, (size_t)row, (size_t)col, value);
+    return true;
+}
+static size_t LongLongMatrix_rows(const LongLongMatrix *m) { return m->rows; }
+static size_t LongLongMatrix_cols(const LongLongMatrix *m) { return m->cols; }
+static size_t LongLongMatrix_size(const LongLongMatrix *m) { return m->rows * m->cols; }
+static void LongLongMatrix_resize(LongLongMatrix *m, size_t rows, size_t cols, long long value) {
+    if (rows == m->rows && cols == m->cols) return;
+    LongLongMatrix out = LongLongMatrix_filled(rows, cols, value);
+    size_t common_rows = rows < m->rows ? rows : m->rows;
+    size_t common_cols = cols < m->cols ? cols : m->cols;
+    if (common_cols)
+        for (size_t r = 0; r < common_rows; ++r)
+            memcpy(out.data + r * cols, m->data + r * m->cols,
+                   common_cols * sizeof *out.data);
+    LongLongMatrix_free(m);
+    *m = out;
+}
 /* SPDX-License-Identifier: MIT-0 */
 static LongLongMatrix LongLongMatrix_multiply(const LongLongMatrix *a,const LongLongMatrix *b) {
     if(a->cols!=b->rows)tb_fail("matrix dimension mismatch");
@@ -111,14 +132,6 @@ static LongLongMatrix read_ll_matrix(size_t rows,size_t cols) {
     for(size_t i=0;i<n;++i)m.data[i]=read_ll();
     return m;
 }
-static void print_ll_matrix(const LongLongMatrix *m,const char *separator,const char *end) {
-    for(size_t i=0;i<m->rows;++i) {
-        for(size_t j=0;j<m->cols;++j) { if(j)print_text(separator,"");long long value = m->data[i*m->cols+j]; print_ll(value, ""); }
-        print_char('\n',"");
-    }
-    print_text("",end);
-}
-
 static long long LongLongMatrix_sum_region(const LongLongMatrix *m, size_t row, size_t col,
                                       size_t height, size_t width, bool border) {
     LongLongMatrix_check_rect(m, row, col, height, width);
@@ -141,6 +154,19 @@ static long long LongLongMatrix_sum_rect(const LongLongMatrix *m, size_t row, si
 static long long LongLongMatrix_sum_border(const LongLongMatrix *m, size_t row, size_t col,
                                       size_t height, size_t width) {
     return LongLongMatrix_sum_region(m, row, col, height, width, true);
+}
+/* SPDX-License-Identifier: MIT-0 */
+static void print_ll_matrix(const LongLongMatrix *m,
+                                  const char *elem_sep, const char *row_sep, const char *end) {
+    for (size_t r = 0; r < m->rows; ++r) {
+        if (r) print_text(row_sep, "");
+        for (size_t c = 0; c < m->cols; ++c) {
+            if (c) print_text(elem_sep, "");
+            long long value = m->data[r * m->cols + c];
+            print_ll(value, "");
+        }
+    }
+    print_text("", end);
 }
 
 #endif

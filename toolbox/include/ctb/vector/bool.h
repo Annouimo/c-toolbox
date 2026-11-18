@@ -58,7 +58,7 @@ static bool BoolVector_get_into(const BoolVector *v, size_t pos, bool *out) {
     if (out) *out = v->data[pos];
     return true;
 }
-static bool BoolVector_set(BoolVector *v, size_t pos, bool value) {
+static bool BoolVector_try_set(BoolVector *v, size_t pos, bool value) {
     if (pos >= v->len) return false;
     v->data[pos] = value;
     return true;
@@ -220,6 +220,26 @@ static void BoolVector_sort_by(BoolVector *v,int (*compare)(const bool *,const b
     if(!compare)tb_fail("null comparator");
     if(v->len<2)return;
     bool *scratch=tb_resize(NULL,v->len,sizeof *scratch);BoolVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
+}
+
+static BoolVector BoolVector_filled(size_t length, bool value) {
+    BoolVector v = BoolVector_new();
+    BoolVector_resize(&v, length, value);
+    return v;
+}
+static bool BoolVector_in_bounds(const BoolVector *v, intmax_t pos) {
+    return pos >= 0 && (uintmax_t)pos < v->len;
+}
+static void BoolVector_set(BoolVector *v, size_t pos, bool value) {
+    if (!BoolVector_try_set(v, pos, value)) tb_fail("vector index out of range");
+}
+
+static void print_bools(const BoolVector *v, const char *sep, const char *end) {
+    for (size_t i = 0; i < v->len; ++i) {
+        if (i) print_text(sep, "");
+        print_int(v->data[i], "");
+    }
+    print_text("", end);
 }
 
 #endif

@@ -58,7 +58,7 @@ static bool IndexVector_get_into(const IndexVector *v, size_t pos, size_t *out) 
     if (out) *out = v->data[pos];
     return true;
 }
-static bool IndexVector_set(IndexVector *v, size_t pos, size_t value) {
+static bool IndexVector_try_set(IndexVector *v, size_t pos, size_t value) {
     if (pos >= v->len) return false;
     v->data[pos] = value;
     return true;
@@ -220,6 +220,18 @@ static void IndexVector_sort_by(IndexVector *v,int (*compare)(const size_t *,con
     if(!compare)tb_fail("null comparator");
     if(v->len<2)return;
     size_t *scratch=tb_resize(NULL,v->len,sizeof *scratch);IndexVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
+}
+
+static IndexVector IndexVector_filled(size_t length, size_t value) {
+    IndexVector v = IndexVector_new();
+    IndexVector_resize(&v, length, value);
+    return v;
+}
+static bool IndexVector_in_bounds(const IndexVector *v, intmax_t pos) {
+    return pos >= 0 && (uintmax_t)pos < v->len;
+}
+static void IndexVector_set(IndexVector *v, size_t pos, size_t value) {
+    if (!IndexVector_try_set(v, pos, value)) tb_fail("vector index out of range");
 }
 
 static IndexVector read_sizes(size_t count) { IndexVector v=IndexVector_new();IndexVector_reserve(&v,count);for(size_t i=0;i<count;++i) IndexVector_push(&v,read_ull());return v;}
