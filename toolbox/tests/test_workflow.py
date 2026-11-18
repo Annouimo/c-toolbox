@@ -33,9 +33,10 @@ class WorkflowTests(unittest.TestCase):
                 cwd=other, capture_output=True, text=True, encoding="utf-8")
             self.assertEqual(result.returncode, 0, result.stderr)
             folder = root / "练习/A"
-            self.assertEqual({p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}, set(tb.BUNDLE["headers"]) | {"main.c", "prepare.py"})
-            self.assertIn('#include "ctb/io.h"', (folder / "main.c").read_text())
+            self.assertEqual({p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}, {"c_toolbox.h", "main.c", "prepare.py"})
+            self.assertIn('#include "c_toolbox.h"', (folder / "main.c").read_text())
             original = (folder / "main.c").read_bytes()
+            (folder / "scratch.c").write_text("not the selected source")
             result = subprocess.run([sys.executable, str(folder / "prepare.py"), "--no-copy"],
                 cwd=other, capture_output=True, text=True, encoding="utf-8")
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -102,6 +103,8 @@ int main(void) {
 ''')
             code, dependencies = p["expand_source"](source)
             self.assertEqual(len(dependencies), 4)
+            self.assertEqual(code.count("#define HELPER_H"), 2)
+            self.assertEqual(code.count('#line 1 "c_toolbox.h"'), 1)
             self.assertIn("#include <stdio.h>", code)
             self.assertNotIn('#include "helper.h"', code)
             self.assertNotIn('#include "missing.h"', code)
@@ -115,6 +118,21 @@ int main(void) {
                 ["-std=c99", "main.c", "-o", "original.exe", "-lm"],
                 cwd=folder, capture_output=True, text=True)
             self.assertEqual(original.returncode, 0, original.stderr)
+
+    def test_expansion_respects_guard_overrides(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            prepare = load_prepare(folder)
+            (folder / "inner.h").write_text(
+                "#ifndef INNER_H\n#define INNER_H\n#define VALUE 7\n#endif\n")
+            (folder / "outer.h").write_text(
+                '#ifndef OUTER_H\n#define OUTER_H\n#include "inner.h"\n#endif\n')
+            source = folder / "main.c"
+            source.write_text(
+                '#define OUTER_H\n#include "outer.h"\n#include "inner.h"\n'
+                'int main(void) { return VALUE != 7; }\n')
+            code, _ = prepare["expand_source"](source)
+            self.assertEqual(self.run_c(code), "")
 
     def test_expand_failures_and_source_protection(self):
         with tempfile.TemporaryDirectory() as temp:

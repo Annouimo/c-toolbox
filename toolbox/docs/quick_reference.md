@@ -7,14 +7,14 @@ C99 · 设计者 Annouimo
 ## 开始做题
 
 1. 运行入口 Python 脚本，填写题目目录并选择程序框架。目录留空会在入口旁导出手册。
-2. `main.c` 默认引入 `ctb/io.h`。按需引入其他模块，它们会自动包含依赖。手动编译用 `cc -std=c99 -O2 main.c -o main -lm`。
-3. 运行题目目录的 `prepare.py`，展开本地头文件、检查编译并复制。多个 C 文件时选择要提交的文件。结果在 `.toolbox/submit.c`。可用 `--no-copy` 只检查和保存，`--run` 运行，`--cc` 指定编译器。
+2. 默认只需在 `main.c` 中引入 `c_toolbox.h`。继续按下文查找内置 API。手动编译用 `cc -std=c99 -O2 main.c -o main -lm`。
+3. 运行题目目录的 `prepare.py`，按 `main.c` 中引用的名字组装依赖、检查编译并复制。结果在 `.toolbox/submit.c`。可用 `--no-copy` 只检查和保存，`--run` 运行，`--cc` 指定编译器。
 
-已有目录不覆盖，每题保留创建时的版本。
+默认组装模式面向单个 `main.c`，仅支持工具箱和标准库的 `#include`。需要自定义容器、其他预处理指令或自有头文件时，用入口脚本的 `--modular` 创建目录，再按下文的 `ctb/` 路径引入头文件。已有目录不覆盖，每题保留创建时的版本。
 
 ## 标量 IO
 
-引入 `ctb/io.h`。
+分模块模式用 `ctb/io.h`。
 
 | 任务 | 接口 |
 | --- | --- |
@@ -112,7 +112,8 @@ find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正�
 
 | 任务 | 头文件 | 接口 |
 | --- | --- | --- |
-| 相等段、最大子段、相邻差分、下一排列 | `ctb/sequence/algorithms.h` | `IntVector_longest_equal_run`、`IntVector_max_subarray`、`IntVector_difference`、`IntVector_next_permutation` |
+| 相等段、最大子段、相邻差分 | `ctb/sequence/algorithms.h` | `IntVector_longest_equal_run`、`IntVector_max_subarray`、`IntVector_difference` |
+| 下一排列 | `ctb/vector/int.h` | `IntVector_next_permutation(&v)`，到最后一个排列后复位并返回 false |
 | 稳定排序下标、离散化 | `ctb/sequence/algorithms.h` | 各数值 Vector 的 `_argsort` 和 `IntVector_discretize` |
 | 静态区间求和 | `ctb/sequence/prefix_sum.h` | `prefix_sum_from(&v)` 创建快照，`prefix_sum_query(&p,begin,end)` 求和，`prefix_sum_free(&p)` 释放 |
 | 批量区间加法 | `ctb/sequence/range_difference.h` | `range_difference_from_ints`、`range_difference_add(&r,first,last,delta)`、`range_difference_materialize`、`range_difference_free` |

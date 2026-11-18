@@ -90,10 +90,39 @@ def strip_comments(text, in_block):
                 quote = ch
     return "".join(result), in_block
 
-def expand_source(source):
+def header_guard(lines):
+    """Recognize a guard enclosing the entire file, with no outer alternative."""
+    keys = [view.strip() for _, _, _, view in lines if view.strip()]
+    if len(keys) < 3:
+        return False
+    guard = re.fullmatch(r"#\s*ifndef\s+([A-Za-z_]\w*)", keys[0])
+    if not guard or not re.fullmatch(r"#\s*define\s+" + guard[1], keys[1]):
+        return False
+    depth = 1
+    for i, key in enumerate(keys[2:], 2):
+        directive = re.match(r"#\s*(\w+)", key)
+        if not directive:
+            continue
+        name = directive[1]
+        if name in ("if", "ifdef", "ifndef"):
+            depth += 1
+        elif name == "endif":
+            depth -= 1
+            if depth == 0:
+                return guard[1] if i == len(keys) - 1 else None
+        elif depth == 1 and name in ("else", "elif", "elifdef", "elifndef"):
+            return False
+    return False
+
+def expand_source(source, *, deduplicate=True):
+    source = source.resolve()
     root = source.parent
     dependencies = set()
     active = []
+    seen = set()
+    macro_mutation = False
+    definitions = {}
+    guards = {}
     def label(path):
         try:
             return path.relative_to(root).as_posix()
@@ -101,8 +130,11 @@ def expand_source(source):
             return path.as_posix()
     def line(number, path):
         return "#line %d %s\n" % (number, json.dumps(label(path), ensure_ascii=True))
-    def expand(path):
+    def expand(path, unconditional=True):
+        nonlocal macro_mutation
         path = path.resolve()
+        if path in seen:
+            return ""
         if path in active:
             raise ValueError("本地头文件循环引用：" + " -> ".join(p.name for p in active + [path]))
         if not path.is_file():
@@ -112,8 +144,31 @@ def expand_source(source):
         text = path.read_text(encoding="utf-8-sig")
         result = [line(1, path)]
         in_block = False
+        lines = []
         for start, following, raw in logical_lines(text):
             view, in_block = strip_comments(raw.replace("\\\n", ""), in_block)
+            lines.append((start, following, raw, view))
+        guarded = path != source and header_guard(lines)
+        if guarded:
+            guards[path] = guarded
+        depth = 0
+        for start, following, raw, view in lines:
+            keyword = re.match(r"^\s*#\s*(\w+)", view)
+            if keyword:
+                if keyword[1] in ("if", "ifdef", "ifndef"):
+                    depth += 1
+                elif keyword[1] == "endif":
+                    depth -= 1
+                elif keyword[1] == "define":
+                    definition = re.match(r"^\s*#\s*define\s+([A-Za-z_]\w*)", view)
+                    if definition:
+                        definitions.setdefault(definition[1], set()).add((path, start))
+                elif keyword[1] == "undef" or (
+                    keyword[1] == "pragma" and re.search(r"\b(?:push_macro|pop_macro)\b", view)
+                ):
+                    macro_mutation = True
+            if "_Pragma" in view:
+                macro_mutation = True
             directive = re.match(r"^\s*#\s*include\b(.*)$", view, re.S)
             if not directive:
                 result.append(view + "\n" * max(0, raw.count("\n") - view.count("\n")))
@@ -126,14 +181,19 @@ def expand_source(source):
             if not quoted:
                 raise ValueError("%s:%d 不支持宏形式的 include，请改为字面文件名。" % (label(path), start))
             included = (path.parent / quoted.group(1)).resolve()
-            # Expand at each occurrence: a prior include may be in #if 0.
-            # Original include guards remain responsible for deduplication.
-            result.append(expand(included))
+            # A header's own guard does not make its dependencies optional.
+            result.append(expand(included, unconditional and depth == bool(guarded)))
             result.append(line(following, path))
         active.pop()
+        if deduplicate and unconditional and guarded:
+            seen.add(path)
         return "".join(result) + "\n"
     code = EXPORT_MARKER + " v" + VERSION + " | generated; edit the original source */\n"
     code += expand(source)
+    if deduplicate and (macro_mutation or any(
+        len(definitions[guard]) > 1 for guard in guards.values()
+    )):
+        return expand_source(source, deduplicate=False)
     return code, dependencies
 
 def compiler_command(override=None):
@@ -238,8 +298,17 @@ def copy_clipboard(text):
 
 def prepare(folder, source=None, output=None, compiler=None, no_copy=False, run=False, ask=input):
     folder = Path(folder).resolve()
-    selected = choose_source(folder, source, ask)
-    code, dependencies = expand_source(selected)
+    if "SINGLE_INDEX" in globals():
+        selected = (folder / "main.c").resolve()
+        if source and (folder / source).resolve() != selected:
+            raise ValueError("单头文件模式要求源文件名为 main.c。")
+        code = EXPORT_MARKER + " v" + VERSION + " | generated; edit the original source */\n"
+        code += assemble(selected.read_text(encoding="utf-8-sig"), SINGLE_INDEX)
+        dependencies = {selected, (folder / "c_toolbox.h").resolve(), Path(__file__).resolve()}
+        print("提交体积：%d 字节" % len(code.encode("utf-8")))
+    else:
+        selected = choose_source(folder, source, ask)
+        code, dependencies = expand_source(selected)
     target = Path(output) if output else folder / ".toolbox" / "submit.c"
     if not target.is_absolute():
         target = folder / target
