@@ -26,3 +26,27 @@ static void print_@SUFFIX@_matrix(const @NAME@ *m@PRECISION@,const char *separat
     }
     print_text("",end);
 }
+
+static @ACCUMULATOR@ @NAME@_sum_region(const @NAME@ *m, size_t row, size_t col,
+                                      size_t height, size_t width, bool border) {
+    @NAME@_check_rect(m, row, col, height, width);
+    @ACCUMULATOR@ total = 0;
+    if (!width) return total;
+    for (size_t r = 0; r < height; ++r) {
+        size_t step = border ? tb_matrix_border_step(r, height, width) : 1;
+        for (size_t c = 0; c < width; c += step) {
+            @TYPE@ value = m->data[(row + r) * m->cols + col + c];
+            @SUM@
+            if (c == width - 1) break;
+        }
+    }
+    return total;
+}
+static @ACCUMULATOR@ @NAME@_sum_rect(const @NAME@ *m, size_t row, size_t col,
+                                    size_t height, size_t width) {
+    return @NAME@_sum_region(m, row, col, height, width, false);
+}
+static @ACCUMULATOR@ @NAME@_sum_border(const @NAME@ *m, size_t row, size_t col,
+                                      size_t height, size_t width) {
+    return @NAME@_sum_region(m, row, col, height, width, true);
+}

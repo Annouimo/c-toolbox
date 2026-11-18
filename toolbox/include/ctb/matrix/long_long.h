@@ -1,6 +1,7 @@
 #ifndef CTB_MATRIX_LONG_LONG_H
 #define CTB_MATRIX_LONG_LONG_H
 #include "../io.h"
+#include "detail/border.h"
 #include "detail/integer.h"
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { long long *data; size_t rows, cols; } LongLongMatrix;
@@ -28,6 +29,67 @@ static LongLongMatrix LongLongMatrix_transpose(const LongLongMatrix *m) {
 }
 static void LongLongMatrix_free(LongLongMatrix *m) { free(m->data);*m=(LongLongMatrix){0}; }
 static void LongLongMatrix_swap(LongLongMatrix *a,LongLongMatrix *b) { LongLongMatrix x=*a;*a=*b;*b=x; }
+
+static void LongLongMatrix_fill(LongLongMatrix *m, long long value) {
+    for (size_t i = 0; i < m->rows * m->cols; ++i) m->data[i] = value;
+}
+static LongLongMatrix LongLongMatrix_filled(size_t rows, size_t cols, long long value) {
+    LongLongMatrix m = LongLongMatrix_new(rows, cols);
+    LongLongMatrix_fill(&m, value);
+    return m;
+}
+static bool LongLongMatrix_empty(const LongLongMatrix *m) {
+    return m->rows == 0 || m->cols == 0;
+}
+static bool LongLongMatrix_in_bounds(const LongLongMatrix *m, intmax_t row, intmax_t col) {
+    return row >= 0 && col >= 0 && (uintmax_t)row < m->rows && (uintmax_t)col < m->cols;
+}
+typedef struct { bool ok; long long value; } LongLongMatrixResult;
+static LongLongMatrixResult LongLongMatrix_try_get(const LongLongMatrix *m, intmax_t row, intmax_t col) {
+    if (!LongLongMatrix_in_bounds(m, row, col)) return (LongLongMatrixResult){0};
+    return (LongLongMatrixResult){true, LongLongMatrix_get(m, (size_t)row, (size_t)col)};
+}
+static void LongLongMatrix_check_rect(const LongLongMatrix *m, size_t row, size_t col,
+                              size_t height, size_t width) {
+    if (row > m->rows || col > m->cols || height > m->rows - row || width > m->cols - col)
+        tb_fail("matrix rectangle out of range");
+}
+static void LongLongMatrix_fill_rect(LongLongMatrix *m, size_t row, size_t col,
+                             size_t height, size_t width, long long value) {
+    LongLongMatrix_check_rect(m, row, col, height, width);
+    if (!width) return;
+    for (size_t r = 0; r < height; ++r)
+        for (size_t c = 0; c < width; ++c)
+            m->data[(row + r) * m->cols + col + c] = value;
+}
+static void LongLongMatrix_fill_row(LongLongMatrix *m, size_t row, long long value) {
+    LongLongMatrix_fill_rect(m, row, 0, 1, m->cols, value);
+}
+static void LongLongMatrix_fill_col(LongLongMatrix *m, size_t col, long long value) {
+    LongLongMatrix_fill_rect(m, 0, col, m->rows, 1, value);
+}
+static void LongLongMatrix_draw_rect(LongLongMatrix *m, size_t row, size_t col,
+                             size_t height, size_t width, long long value) {
+    LongLongMatrix_check_rect(m, row, col, height, width);
+    if (!height || !width) return;
+    for (size_t r = 0; r < height; ++r) {
+        size_t step = tb_matrix_border_step(r, height, width);
+        for (size_t c = 0; c < width; c += step) {
+            m->data[(row + r) * m->cols + col + c] = value;
+            if (c == width - 1) break;
+        }
+    }
+}
+static LongLongMatrix LongLongMatrix_slice(const LongLongMatrix *m, size_t row, size_t col,
+                           size_t height, size_t width) {
+    LongLongMatrix_check_rect(m, row, col, height, width);
+    LongLongMatrix out = LongLongMatrix_new(height, width);
+    if (width)
+        for (size_t r = 0; r < height; ++r)
+            memcpy(out.data + r * width, m->data + (row + r) * m->cols + col,
+                   width * sizeof *out.data);
+    return out;
+}
 /* SPDX-License-Identifier: MIT-0 */
 static LongLongMatrix LongLongMatrix_multiply(const LongLongMatrix *a,const LongLongMatrix *b) {
     if(a->cols!=b->rows)tb_fail("matrix dimension mismatch");
@@ -55,6 +117,30 @@ static void print_ll_matrix(const LongLongMatrix *m,const char *separator,const 
         print_char('\n',"");
     }
     print_text("",end);
+}
+
+static long long LongLongMatrix_sum_region(const LongLongMatrix *m, size_t row, size_t col,
+                                      size_t height, size_t width, bool border) {
+    LongLongMatrix_check_rect(m, row, col, height, width);
+    long long total = 0;
+    if (!width) return total;
+    for (size_t r = 0; r < height; ++r) {
+        size_t step = border ? tb_matrix_border_step(r, height, width) : 1;
+        for (size_t c = 0; c < width; c += step) {
+            long long value = m->data[(row + r) * m->cols + col + c];
+            total = tb_matrix_checked_add(total, value, "matrix sum overflow");
+            if (c == width - 1) break;
+        }
+    }
+    return total;
+}
+static long long LongLongMatrix_sum_rect(const LongLongMatrix *m, size_t row, size_t col,
+                                    size_t height, size_t width) {
+    return LongLongMatrix_sum_region(m, row, col, height, width, false);
+}
+static long long LongLongMatrix_sum_border(const LongLongMatrix *m, size_t row, size_t col,
+                                      size_t height, size_t width) {
+    return LongLongMatrix_sum_region(m, row, col, height, width, true);
 }
 
 #endif

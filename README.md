@@ -2,7 +2,7 @@
 
 面向熟悉 C 的使用者，提供按需引入的 C99 字符串、容器和 IO。由 Annouimo/c-exam-kit 的工具箱开发分支迁入，原提交历史保留。
 
-v0.8.0 拆分 String 与 StringList，统一 Vector 和 Matrix 的头文件路径与调用方式。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
+v0.9.0 增加字符与布尔容器，以及矩阵区域操作。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
 
 ## 使用
 

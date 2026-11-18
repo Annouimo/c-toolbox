@@ -39,7 +39,7 @@ int main(void){
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.8.1.py'
+        script=ROOT/'dist/c_toolbox_v0.9.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
@@ -52,7 +52,7 @@ int main(void){
                 subprocess.run([str(exe)],input=data,text=True,check=True)
 
     def test_typed_headers_in_prepared_submission(self):
-        script = ROOT / 'dist/c_toolbox_v0.8.1.py'
+        script = ROOT / 'dist/c_toolbox_v0.9.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp) / 'problem'
             subprocess.run([sys.executable, str(script), '--folder', str(folder)],
@@ -115,6 +115,21 @@ int main(void){
                 q=abs(a)//abs(b)
                 if (a<0)!=(b<0):q=-q
                 self.assertEqual(list(map(int,line.split())),[a+b,a-b,a*b,q,a-q*b])
+
+    def test_grid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            exe = Path(tmp) / ('grid.exe' if os.name == 'nt' else 'grid')
+            cc = os.environ.get('CC', 'gcc')
+            flags = shlex.split(os.environ.get('TOOLBOX_CFLAGS', ''))
+            subprocess.run([cc, '-std=c99', *flags, '-I', str(ROOT / 'include'),
+                            str(ROOT / 'tests/modular/grid.c'), '-lm', '-o', str(exe)], check=True)
+            result = subprocess.run([str(exe)], input='3 4\r\n ab \r\n    \r\n1234',
+                                    text=True, capture_output=True, check=True)
+            self.assertEqual(result.stdout, '====\n#*+#\n##+#\n')
+            bad = subprocess.run([str(exe)], input='1 4\nabc\n',
+                                 text=True, capture_output=True)
+            self.assertNotEqual(bad.returncode, 0)
+            self.assertIn('row width mismatch', bad.stderr)
 
     def test_scalar(self):
         with tempfile.TemporaryDirectory() as tmp:

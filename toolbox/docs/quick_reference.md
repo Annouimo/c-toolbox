@@ -85,13 +85,25 @@ find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正�
 
 自定义 Vector 用 `ctb/vector/custom.h`。先定义元素类型，再用 `CTB_VECTOR_DEFINE(Name, Type)`。元素按值浅拷贝。含独立内存的字符串用 StringList。
 
+字符序列用 `ctb/vector/char.h` 的 `CharVector`，可保存内嵌 NUL。一维访问标记用 `ctb/vector/bool.h` 的 `BoolVector`。两者共享向量的基本容器操作。
+
 ## 按题目选工具
 
 ### 矩阵
 
-按类型引入 `ctb/matrix/int.h`、`ctb/matrix/long_long.h`、`ctb/matrix/double.h` 或 `ctb/matrix/custom.h`。例如 `IntMatrix m = read_int_matrix(rows, cols);`，用 `IntMatrix_get(&m, r, c)` 按行列访问，最后用 `IntMatrix_free(&m)` 释放。
+在 `ctb/matrix/` 下按元素类型选择头文件。`int.h`、`long_long.h`、`double.h` 对应三种数值矩阵，`char.h` 和 `bool.h` 对应 `CharMatrix` 和 `BoolMatrix`。自定义类型用 `custom.h` 中的 `CTB_MATRIX_DEFINE(Name, Type)`，元素按值浅拷贝。
 
-IntMatrix、LongLongMatrix 与 DoubleMatrix 按需引入；支持创建、读写、复制、转置、乘法和释放。整数矩阵乘法检查溢出。print 函数统一接受 end，double 版本额外接受小数位数。自定义矩阵用 `CTB_MATRIX_DEFINE(Name, Type)`，支持创建、访问、修改、复制、交换、转置与释放，元素按值浅拷贝。
+下表的 `_` 前加类型名，例如 `IntMatrix_get(&m, r, c)`。行列从 0 开始，矩形参数统一为左上角行列、高度、宽度。
+
+| 任务 | 接口 |
+| --- | --- |
+| 创建与释放 | `_new(rows, cols)`、`_filled(rows, cols, value)`、`_empty(&m)`、`_free(&m)` |
+| 访问单格 | `_get(&m, r, c)`、`_set(&m, r, c, value)`。用 `_in_bounds` 判断是否在界内，或用 `_try_get` 取 `ok/value`。后两者接受负坐标并判为越界 |
+| 填充与画框 | `_fill`、`_fill_row`、`_fill_col`、`_fill_rect`、`_draw_rect`。带 `rect` 的接口在区域参数后接填充值 |
+| 复制与变换 | `_clone`、`_swap`、`_transpose`、`_slice(&m, r, c, h, w)`。复制、转置和切片返回独立矩阵 |
+| 数值运算 | `_multiply(&a, &b)`、`_sum_rect(&m, r, c, h, w)`、`_sum_border(&m, r, c, h, w)`。边框的每格只算一次，含单行单列。整数求和返回 `long long`，整数求和及乘法检查溢出 |
+| 数值读写 | `read_int_matrix(rows, cols)`、`print_int_matrix(&m, sep, end)`。可换成 `ll` 或 `double`，double 输出在 `sep` 前加小数位数 |
+| 字符网格读写 | `read_char_matrix(rows, cols)` 保留空格并检查行宽，接在数字等单词之后时从下一行读起。`print_char_matrix(&m, end)` 在行间加换行，最后追加 `end` |
 
 ### 序列与区间
 
