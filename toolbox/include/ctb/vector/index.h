@@ -198,6 +198,35 @@ static size_t IndexVector_reduce_ctx(const IndexVector *v,size_t initial,size_t 
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static size_t IndexVector_find_from(const IndexVector *v, size_t value, size_t start) {
+    for (size_t i = start; i < v->len; ++i) if (v->data[i] == value) return i;
+    return SIZE_MAX;
+}
+static size_t IndexVector_find(const IndexVector *v, size_t value) {
+    return IndexVector_find_from(v, value, 0);
+}
+static bool IndexVector_contains(const IndexVector *v, size_t value) {
+    return IndexVector_find(v, value) != SIZE_MAX;
+}
+static size_t IndexVector_count(const IndexVector *v, size_t value) {
+    size_t count = 0;
+    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
+    return count;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
+static IndexRange IndexVector_longest_run(const IndexVector *v, size_t value) {
+    IndexRange best = {0, 0};
+    size_t start = 0;
+    for (size_t i = 0; i < v->len; ++i) {
+        if (!(v->data[i] == value)) start = i + 1;
+        else if (i + 1 - start > best.end - best.begin)
+            best = (IndexRange){start, i + 1};
+    }
+    return best;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; size_t value; } IndexVectorResult;
 static IndexVectorResult IndexVector_try_get(const IndexVector *v,size_t pos){IndexVectorResult r={0};r.ok=IndexVector_get_into(v,pos,&r.value);return r;}
 static size_t IndexVector_get(const IndexVector *v,size_t pos){IndexVectorResult r=IndexVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}

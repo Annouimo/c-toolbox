@@ -198,6 +198,23 @@ static double DoubleVector_reduce_ctx(const DoubleVector *v,double initial,doubl
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static size_t DoubleVector_find_from(const DoubleVector *v, double value, size_t start) {
+    for (size_t i = start; i < v->len; ++i) if (v->data[i] == value) return i;
+    return SIZE_MAX;
+}
+static size_t DoubleVector_find(const DoubleVector *v, double value) {
+    return DoubleVector_find_from(v, value, 0);
+}
+static bool DoubleVector_contains(const DoubleVector *v, double value) {
+    return DoubleVector_find(v, value) != SIZE_MAX;
+}
+static size_t DoubleVector_count(const DoubleVector *v, double value) {
+    size_t count = 0;
+    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
+    return count;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 #include <math.h>
 /* Numeric helpers for int, long long and double. Floating operands must be finite. */
 static int DoubleVector_compare_asc(const void *a, const void *b) {
@@ -209,18 +226,6 @@ static int DoubleVector_compare_desc(const void *a, const void *b) {
 }
 static void DoubleVector_sort_asc(DoubleVector *v) { DoubleVector_sort(v, DoubleVector_compare_asc); }
 static void DoubleVector_sort_desc(DoubleVector *v) { DoubleVector_sort(v, DoubleVector_compare_desc); }
-static size_t DoubleVector_find(const DoubleVector *v, double value) {
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) return i;
-    return SIZE_MAX;
-}
-static bool DoubleVector_contains(const DoubleVector *v, double value) {
-    return DoubleVector_find(v, value) != SIZE_MAX;
-}
-static size_t DoubleVector_count(const DoubleVector *v, double value) {
-    size_t count = 0;
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
-    return count;
-}
 static size_t DoubleVector_lower_bound(const DoubleVector *v, double key) {
     size_t left = 0, right = v->len;
     while (left < right) {
@@ -306,6 +311,18 @@ static double DoubleVector_sum(const DoubleVector *v) {
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static IndexRange DoubleVector_longest_run(const DoubleVector *v, double value) {
+    IndexRange best = {0, 0};
+    size_t start = 0;
+    for (size_t i = 0; i < v->len; ++i) {
+        if (!(v->data[i] == value)) start = i + 1;
+        else if (i + 1 - start > best.end - best.begin)
+            best = (IndexRange){start, i + 1};
+    }
+    return best;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; double value; } DoubleVectorResult;
 static DoubleVectorResult DoubleVector_try_get(const DoubleVector *v,size_t pos){DoubleVectorResult r={0};r.ok=DoubleVector_get_into(v,pos,&r.value);return r;}
 static double DoubleVector_get(const DoubleVector *v,size_t pos){DoubleVectorResult r=DoubleVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
@@ -340,6 +357,15 @@ static bool DoubleVector_in_bounds(const DoubleVector *v, intmax_t pos) {
 }
 static void DoubleVector_set(DoubleVector *v, size_t pos, double value) {
     if (!DoubleVector_try_set(v, pos, value)) tb_fail("vector index out of range");
+}
+
+static void DoubleVector_add_at(DoubleVector *v, size_t pos, double delta) {
+    if (pos >= v->len) tb_fail("vector index out of range");
+    size_t index = pos;
+    double value = v->data[index];
+    double result = value + delta;
+    if (!isfinite(result)) tb_fail("nonfinite element addition");
+    v->data[index] = result;
 }
 
 static DoubleVector read_doubles(size_t count) { DoubleVector v=DoubleVector_new();DoubleVector_reserve(&v,count);for(size_t i=0;i<count;++i) DoubleVector_push(&v,read_double());return v;}

@@ -81,6 +81,11 @@ static DoubleReadResult io_try_read_double(IOReader *r) {
 }
 static DoubleReadResult try_read_double(void) { return io_try_read_double(tb_input()); }
 static double read_double(void) { DoubleReadResult r=try_read_double(); io_require(r.status); return r.value; }
+static bool read_bool(void) {
+    int value = read_int();
+    if (value != 0 && value != 1) io_require(IO_FORMAT);
+    return value == 1;
+}
 typedef struct { IOStatus status; char value; } CharReadResult;
 static CharReadResult io_try_read_char(IOReader *r, bool raw) {
     int c; do { c=fgetc(r->stream); } while(!raw && c!=EOF && isspace((unsigned char)c));

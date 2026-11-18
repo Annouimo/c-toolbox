@@ -198,6 +198,23 @@ static long long LongLongVector_reduce_ctx(const LongLongVector *v,long long ini
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static size_t LongLongVector_find_from(const LongLongVector *v, long long value, size_t start) {
+    for (size_t i = start; i < v->len; ++i) if (v->data[i] == value) return i;
+    return SIZE_MAX;
+}
+static size_t LongLongVector_find(const LongLongVector *v, long long value) {
+    return LongLongVector_find_from(v, value, 0);
+}
+static bool LongLongVector_contains(const LongLongVector *v, long long value) {
+    return LongLongVector_find(v, value) != SIZE_MAX;
+}
+static size_t LongLongVector_count(const LongLongVector *v, long long value) {
+    size_t count = 0;
+    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
+    return count;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 #include <math.h>
 /* Numeric helpers for int, long long and double. Floating operands must be finite. */
 static int LongLongVector_compare_asc(const void *a, const void *b) {
@@ -209,18 +226,6 @@ static int LongLongVector_compare_desc(const void *a, const void *b) {
 }
 static void LongLongVector_sort_asc(LongLongVector *v) { LongLongVector_sort(v, LongLongVector_compare_asc); }
 static void LongLongVector_sort_desc(LongLongVector *v) { LongLongVector_sort(v, LongLongVector_compare_desc); }
-static size_t LongLongVector_find(const LongLongVector *v, long long value) {
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) return i;
-    return SIZE_MAX;
-}
-static bool LongLongVector_contains(const LongLongVector *v, long long value) {
-    return LongLongVector_find(v, value) != SIZE_MAX;
-}
-static size_t LongLongVector_count(const LongLongVector *v, long long value) {
-    size_t count = 0;
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
-    return count;
-}
 static size_t LongLongVector_lower_bound(const LongLongVector *v, long long key) {
     size_t left = 0, right = v->len;
     while (left < right) {
@@ -325,6 +330,18 @@ static LongLongVector LongLongVector_range(long long start, long long stop, long
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static IndexRange LongLongVector_longest_run(const LongLongVector *v, long long value) {
+    IndexRange best = {0, 0};
+    size_t start = 0;
+    for (size_t i = 0; i < v->len; ++i) {
+        if (!(v->data[i] == value)) start = i + 1;
+        else if (i + 1 - start > best.end - best.begin)
+            best = (IndexRange){start, i + 1};
+    }
+    return best;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; long long value; } LongLongVectorResult;
 static LongLongVectorResult LongLongVector_try_get(const LongLongVector *v,size_t pos){LongLongVectorResult r={0};r.ok=LongLongVector_get_into(v,pos,&r.value);return r;}
 static long long LongLongVector_get(const LongLongVector *v,size_t pos){LongLongVectorResult r=LongLongVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
@@ -359,6 +376,17 @@ static bool LongLongVector_in_bounds(const LongLongVector *v, intmax_t pos) {
 }
 static void LongLongVector_set(LongLongVector *v, size_t pos, long long value) {
     if (!LongLongVector_try_set(v, pos, value)) tb_fail("vector index out of range");
+}
+
+static void LongLongVector_add_at(LongLongVector *v, size_t pos, long long delta) {
+    if (pos >= v->len) tb_fail("vector index out of range");
+    size_t index = pos;
+    long long value = v->data[index];
+    if ((delta > 0 && value > LLONG_MAX - delta) ||
+        (delta < 0 && value < LLONG_MIN - delta))
+        tb_fail("element addition overflow");
+    long long result = value + delta;
+    v->data[index] = result;
 }
 
 static LongLongVector read_lls(size_t count) { LongLongVector v=LongLongVector_new();LongLongVector_reserve(&v,count);for(size_t i=0;i<count;++i) LongLongVector_push(&v,read_ll());return v;}

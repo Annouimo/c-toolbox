@@ -14,11 +14,9 @@ C99 · 设计者 Annouimo
 
 ## 标量 IO
 
-分模块模式用 `ctb/io.h`。
-
 | 任务 | 接口 |
 | --- | --- |
-| 标量 | read_int / read_ll / read_uint / read_ull / read_double，无参数、返回值 |
+| 标量 | read_int / read_ll / read_uint / read_ull / read_double / read_bool，无参数、返回值 |
 | 检查读取 | try_read_int() 等，返回 status/value；status 与 IO_OK、IO_EOF、IO_FORMAT、IO_RANGE、IO_STREAM_ERROR 比较 |
 | 字符 | read_char() 跳过空白；read_char_raw() 保留空白 |
 | 输出 | print_int(x,end)、print_ll(x,end)、print_text(text,end)、print_char(ch,end)；例如 print_int(x,"\n") |
@@ -32,7 +30,7 @@ C99 · 设计者 Annouimo
 
 ### String
 
-引入 `ctb/string.h`。例如 `String s = read_line(); print_string(&s, "\n"); string_free(&s);`。
+例如 `String s = read_line(); print_string(&s, "\n"); string_free(&s);`。
 
 | 任务 | 接口 |
 | --- | --- |
@@ -40,35 +38,37 @@ C99 · 设计者 Annouimo
 | 数值解析 | `string_parse_int/ll/double` 返回 `ok/value` |
 | 创建、释放 | string_new / string_from(text) / string_clone(&s) / string_repeat(&s,count) / string_repeat_char(ch,count)；string_free(&s) |
 | 查询 | string_size/empty/compare/equal；string_cstr(&s) 返回借用的 const char*；string_at(&s,i) |
-| 修改 | string_assign/append/insert/erase/set/push；append_slice/append_repeat；pad_left/pad_right；trim/lower/upper/reverse |
+| 修改 | string_assign/append/insert/erase/set/push；append_slice/append_repeat；pad_left/pad_right；trim/lower/upper/reverse、`string_is_palindrome` 查询回文 |
 | 切片 | string_slice(&s,pos,count)；string_slice_step(&s,first,last,step)，正步长左闭右开 |
-| 查找 | string_find(&s,needle,start)，未找到 SIZE_MAX；contains/count/count_overlapping |
+| 字符查询 | `string_find_char(&s, ch, start)`、`string_contains_char(&s, ch)`、`string_count_char(&s, ch)` |
+| 字符修改 | `string_replace_char(&s, from, to)`、`string_remove_char(&s, ch)` 返回匹配或删除的数量，原地处理所有匹配。`string_pop_char(&s)` 返回末字符，空串报错。`string_try_pop_char(&s)` 返回 ok/value |
+| 字符排序和去重 | `string_sort_chars(&s)` 按无符号字节升序，如 banana → aaabnn。`string_unique_chars(&s)` 保留首次出现顺序，如 banana → ban，返回删除数量。两者都原地修改 |
+| 子串查找 | string_find(&s,needle,start)，未找到 SIZE_MAX；contains/count/count_overlapping |
 | 替换 | string_replace_all；remove_first/remove_all/remove_repeated |
 | 格式化 | string_format(format,...)；string_append_format(&s,format,...) |
 | 连续字符 | string_longest_char_run(&s,ch) 返回 begin/end，同长取最早 |
 
-line 默认跳过空白行、修剪首尾，保留内部空格；raw 保留空行与首尾空白，移除 LF/CRLF/CR。数字后 raw 读取当前分隔符起的行尾；next_line_raw 跨过数字所在行再读下一完整行，遇到额外非空白数据返回 IO_EXTRA_DATA。read_rest 读取当前行剩余内容。 文本按字节索引，不支持内嵌 NUL。
+line 默认跳过空白行、修剪首尾，保留内部空格；raw 保留空行与首尾空白，移除 LF/CRLF/CR。数字后 raw 读取当前分隔符起的行尾；next_line_raw 跨过数字所在行再读下一完整行，遇到额外非空白数据返回 IO_EXTRA_DATA。read_rest 读取当前行剩余内容。 文本按字节索引，不支持内嵌 NUL。字符查找从 start 开始，未找到返回 SIZE_MAX。用 `string_find_s` 可直接查找另一个 String。
 
 ### StringList
 
-引入 `ctb/string_list.h`。例如 `StringList a = read_words(n); string_list_sort(&a); print_strings(&a, " ", "\n"); string_list_free(&a);`。
+例如 `StringList a = read_words(n); string_list_sort(&a); print_strings(&a, " ", "\n"); string_list_free(&a);`。
 
 | 任务 | 接口 |
 | --- | --- |
 | 列表 | string_list_new/push/push_text/push_take/get/at/set/insert/erase/clear/clone/slice/swap/free |
 | 列表弹出 | string_list_pop(&list) 返回拥有资源的 String；string_list_try_pop 返回 ok/value |
+| 列表查找 | `string_list_find_text(&list, "abc", start)` 返回下标或 SIZE_MAX。另有 `string_list_contains_text`、`string_list_count_text`。`string_list_find` 接收 String 指针，从头开始 |
 | 列表排序 | string_list_sort；sort_by（稳定）；argsort/argsort_by（返回原下标）；swap；reverse；unique_sorted |
 | 分割、连接 | string_split(&s,delimiter) 保留空字段；string_split_whitespace；string_join(&list,separator) |
 
-`string_remove_patterns` 会反复删除列表中的模式，直到文本稳定。列表插入默认复制字符串，`push_take` 转移所有权并清空源对象。`get/at` 借用的指针可能在列表修改后失效。
+`string_remove_patterns` 会反复删除列表中的模式，直到文本稳定。列表插入默认复制字符串，`push_take` 转移所有权并清空源对象。`unique_sorted` 只合并相邻的相等项。`get` 是只读借用，`at` 是可写借用。修改列表可能使借用失效。
 
 ### Vector
 
-按元素类型引入 `ctb/vector/int.h`、`ctb/vector/long_long.h` 或 `ctb/vector/double.h`。
-
 例如 `IntVector v = read_ints(n); IntVector_sort_asc(&v); print_ints(&v, " ", "\n"); IntVector_free(&v);`。其他两种用 `read_lls`、`read_doubles` 和对应的 `print_lls`、`print_doubles`。double 输出在分隔符前加精度参数。
 
-以下 _ 表示对应类型前缀，如 IntVector_push。内置数值容器按需引入，不自动生成其他类型。内置 int、long long、double 向量具备稳定排序、统计和回调操作；整数 sum 返回宽类型并检查溢出。
+以下 _ 表示对应类型前缀，如 IntVector_push。内置 int、long long、double 向量具备稳定排序、统计和回调操作；整数 sum 返回宽类型并检查溢出。
 
 | 任务 | 接口 |
 | --- | --- |
@@ -77,21 +77,21 @@ line 默认跳过空白行、修剪首尾，保留内部空格；raw 保留空�
 | 取值 | _get(&v,i)、_at、_front、_back、_pop；检查版 _try_get / _try_pop 返回 ok/value。_in_bounds 可判断负下标 |
 | 复制 | _clone、_slice(&v,pos,count)、_slice_step(&v,first,last,step)、_extend_vector，返回新对象的需释放 |
 | 排序 | 数值 _sort_asc/desc；_sort_by 使用类型明确的比较器、稳定排序；_sort 使用 qsort 形比较器；所有内置向量提供 _swap |
-| 查询 | _find/contains/count；_lower_bound/upper_bound 要求升序；_unique_sorted |
+| 按值查询 | 六种类型均有 `_find(&v, value)`、`_find_from(&v, value, start)`、`_contains`、`_count`。数值向量的 `_lower_bound/upper_bound` 要求升序，另有 `_unique_sorted` |
+| 连续段 | `_longest_run(&v, value)` 返回左闭右开 begin/end，同长取最早，未命中为 0/0 |
+| 单项累加 | `IntVector_add_at(&v, i, delta)` 原地修改。long long 和 double 同样支持 |
 | 统计 | _sum/mean/variance/stddev/median/min/max/argmin/argmax |
 | 函数操作 | _map/filter/reduce、_map_ctx/_filter_ctx/_reduce_ctx（回调带 void * 上下文）、any/all/count_if/find_if/map_inplace |
 
-find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正步长和左闭右开区间，不支持负下标。空容器 sum=0，其余统计要求非空；variance 为总体方差；median 不修改输入；整数 sum 检查每步 long long 溢出。容器元素浅拷贝，拥有字符串的序列优先 StringList。
+find 未找到返回 SIZE_MAX。double 的按值查找、计数和连续段使用精确相等。slice 是起点＋数量；slice_step 使用正步长和左闭右开区间，不支持负下标。空容器 sum=0，其余统计要求非空；variance 为总体方差；median 不修改输入；整数 sum 检查每步 long long 溢出。容器元素浅拷贝，拥有字符串的序列优先 StringList。
 
-自定义 Vector 用 `ctb/vector/custom.h`。先定义元素类型，再用 `CTB_VECTOR_DEFINE(Name, Type)`。元素按值浅拷贝。含独立内存的字符串用 StringList。
-
-字符序列用 `ctb/vector/char.h` 的 `CharVector`，可保存内嵌 NUL。一维访问标记用 `ctb/vector/bool.h` 的 `BoolVector`。两者共享向量的基本容器操作。`print_bools(&v, sep, end)` 输出 0/1。
+`CharVector` 可保存内嵌 NUL。`read_chars(n)` 读取 n 个非空白字符。`read_bools(n)` 读取 n 个值为 0 或 1 的整数，`print_bools(&v, sep, end)` 输出 0/1。
 
 ## 按题目选工具
 
 ### 矩阵
 
-在 `ctb/matrix/` 下按元素类型选择头文件。`int.h`、`long_long.h`、`double.h` 对应三种数值矩阵，`char.h` 和 `bool.h` 对应 `CharMatrix` 和 `BoolMatrix`。自定义类型用 `custom.h` 中的 `CTB_MATRIX_DEFINE(Name, Type)`，元素按值浅拷贝。
+内置数值矩阵有 `IntMatrix`、`LongLongMatrix` 和 `DoubleMatrix`。字符网格用 `CharMatrix`，访问标记用 `BoolMatrix`。
 
 下表的 `_` 前加类型名，例如 `IntMatrix_get(&m, r, c)`。行列从 0 开始，矩形参数统一为左上角行列、高度、宽度。
 
@@ -104,7 +104,10 @@ find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正�
 | 数值运算 | `_multiply(&a, &b)`、`_sum_rect(&m, r, c, h, w)`、`_sum_border(&m, r, c, h, w)`。边框的每格只算一次，含单行单列。整数求和返回 `long long`，整数求和及乘法检查溢出 |
 | 数值读写 | `read_int_matrix(rows, cols)`、`print_int_matrix(&m, elem_sep, row_sep, end)`。可换成 `ll` 或 `double`，double 输出在 `elem_sep` 前加小数位数 |
 | 字符网格读写 | `read_char_matrix(rows, cols)` 保留空格并检查行宽，接在数字等单词之后时从下一行读起。`print_char_matrix(&m, "", "\n", "\n")` 按行输出 |
-| 布尔矩阵输出 | `print_bool_matrix(&m, elem_sep, row_sep, end)`，格子输出为 0 或 1 |
+| 单格累加 | `IntMatrix_add_at(&m, row, col, delta)` 原地修改。long long 和 double 同样支持 |
+| 布尔矩阵读写 | `read_bool_matrix(rows, cols)` 按行读值为 0 或 1 的整数。`print_bool_matrix(&m, elem_sep, row_sep, end)`，格子输出为 0 或 1 |
+
+行求和可用 `IntMatrix_sum_rect(&m, row, 0, 1, IntMatrix_cols(&m))`。列求和把宽度设为 1。
 
 矩阵打印只在相邻元素间插入 `elem_sep`，只在相邻行间插入 `row_sep`，整个矩阵结束后追加一次 `end`。
 
@@ -155,6 +158,18 @@ find 未找到返回 SIZE_MAX。slice 是起点＋数量；slice_step 使用正�
 
 ## 共同约定
 
-- 下标从 0 开始。切片参数使用对应章节约定。
+- 下标从 0 开始。`slice(pos, count)` 第二个区域参数是长度，`slice_step(begin, end, step)` 的 end 不包含在内，矩形用 `row, col, height, width`。
+- Vector 和 Matrix 的 `set` 越界会报错退出，`try_set` 返回 false。`string_set` 在越界或尝试写入 NUL 时返回 false。
+- `add_at` 在越界、整数溢出或 double 结果非有限时报告错误。
 - 持有内存的对象用各自的 `free` 函数释放。赋值只复制结构体，独立副本用 `clone`。借用的指针可能在原对象修改后失效。
 - 普通读取遇错退出。需要处理 EOF 或非法输入时，用 `try_read_*` 并检查 `status`。检查版容器操作先检查 `ok`，再使用 `value`。
+
+## 分模块头文件
+
+| API | `--modular` 模式的头文件 |
+| --- | --- |
+| 标量 IO | `ctb/io.h` |
+| String、StringList | `ctb/string.h`、`ctb/string_list.h` |
+| Vector | `ctb/vector/` 下的 `int.h`、`long_long.h`、`double.h`、`char.h`、`bool.h`、`index.h` |
+| Matrix | `ctb/matrix/` 下的 `int.h`、`long_long.h`、`double.h`、`char.h`、`bool.h` |
+| 自定义容器 | `ctb/vector/custom.h` 的 `CTB_VECTOR_DEFINE(Name, Type)`，或 `ctb/matrix/custom.h` 的 `CTB_MATRIX_DEFINE(Name, Type)`。先定义元素类型，元素按值浅拷贝 |

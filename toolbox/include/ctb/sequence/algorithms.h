@@ -2,7 +2,6 @@
 #ifndef CTB_ARRAY_H
 #define CTB_ARRAY_H
 #include "../vector/int.h"
-typedef struct { size_t begin,end; } IndexRange;
 typedef struct { bool ok; long long sum; size_t begin,end; } SubarrayResult;
 static long long tb_checked_add_ll(long long a,long long b){if((b>0 && a>LLONG_MAX-b)||(b<0 && a<LLONG_MIN-b))tb_fail("sum overflow");return a+b;}
 static IndexRange IntVector_longest_equal_run(const IntVector *v){IndexRange best={0,0};size_t start=0;for(size_t i=0;i<v->len;++i){if(i && v->data[i]!=v->data[i-1])start=i;if(i+1-start>best.end-best.begin)best=(IndexRange){start,i+1};}return best;}

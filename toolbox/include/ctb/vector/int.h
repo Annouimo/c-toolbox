@@ -198,6 +198,23 @@ static int IntVector_reduce_ctx(const IntVector *v,int initial,int (*combine)(in
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static size_t IntVector_find_from(const IntVector *v, int value, size_t start) {
+    for (size_t i = start; i < v->len; ++i) if (v->data[i] == value) return i;
+    return SIZE_MAX;
+}
+static size_t IntVector_find(const IntVector *v, int value) {
+    return IntVector_find_from(v, value, 0);
+}
+static bool IntVector_contains(const IntVector *v, int value) {
+    return IntVector_find(v, value) != SIZE_MAX;
+}
+static size_t IntVector_count(const IntVector *v, int value) {
+    size_t count = 0;
+    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
+    return count;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 #include <math.h>
 /* Numeric helpers for int, long long and double. Floating operands must be finite. */
 static int IntVector_compare_asc(const void *a, const void *b) {
@@ -209,18 +226,6 @@ static int IntVector_compare_desc(const void *a, const void *b) {
 }
 static void IntVector_sort_asc(IntVector *v) { IntVector_sort(v, IntVector_compare_asc); }
 static void IntVector_sort_desc(IntVector *v) { IntVector_sort(v, IntVector_compare_desc); }
-static size_t IntVector_find(const IntVector *v, int value) {
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) return i;
-    return SIZE_MAX;
-}
-static bool IntVector_contains(const IntVector *v, int value) {
-    return IntVector_find(v, value) != SIZE_MAX;
-}
-static size_t IntVector_count(const IntVector *v, int value) {
-    size_t count = 0;
-    for (size_t i = 0; i < v->len; ++i) if (v->data[i] == value) ++count;
-    return count;
-}
 static size_t IntVector_lower_bound(const IntVector *v, int key) {
     size_t left = 0, right = v->len;
     while (left < right) {
@@ -325,6 +330,18 @@ static IntVector IntVector_range(int start, int stop, int step) {
 }
 
 /* SPDX-License-Identifier: MIT-0 */
+static IndexRange IntVector_longest_run(const IntVector *v, int value) {
+    IndexRange best = {0, 0};
+    size_t start = 0;
+    for (size_t i = 0; i < v->len; ++i) {
+        if (!(v->data[i] == value)) start = i + 1;
+        else if (i + 1 - start > best.end - best.begin)
+            best = (IndexRange){start, i + 1};
+    }
+    return best;
+}
+
+/* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool ok; int value; } IntVectorResult;
 static IntVectorResult IntVector_try_get(const IntVector *v,size_t pos){IntVectorResult r={0};r.ok=IntVector_get_into(v,pos,&r.value);return r;}
 static int IntVector_get(const IntVector *v,size_t pos){IntVectorResult r=IntVector_try_get(v,pos);if(!r.ok)tb_fail("vector index out of range");return r.value;}
@@ -359,6 +376,17 @@ static bool IntVector_in_bounds(const IntVector *v, intmax_t pos) {
 }
 static void IntVector_set(IntVector *v, size_t pos, int value) {
     if (!IntVector_try_set(v, pos, value)) tb_fail("vector index out of range");
+}
+
+static void IntVector_add_at(IntVector *v, size_t pos, int delta) {
+    if (pos >= v->len) tb_fail("vector index out of range");
+    size_t index = pos;
+    int value = v->data[index];
+    if ((delta > 0 && value > INT_MAX - delta) ||
+        (delta < 0 && value < INT_MIN - delta))
+        tb_fail("element addition overflow");
+    int result = value + delta;
+    v->data[index] = result;
 }
 
 static IntVector read_ints(size_t count) { IntVector v=IntVector_new();IntVector_reserve(&v,count);for(size_t i=0;i<count;++i) IntVector_push(&v,read_int());return v;}
