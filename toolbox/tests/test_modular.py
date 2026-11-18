@@ -39,23 +39,23 @@ int main(void){
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.9.1.py'
+        script=ROOT/'dist/c_toolbox_v0.10.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
                 folder=Path(tmp)/mode
                 subprocess.run([sys.executable,str(script),'--folder',str(folder),'--skeleton',mode],check=True,capture_output=True)
-                self.assertFalse((folder/'c_toolbox.h').exists())
+                self.assertTrue((folder/'c_toolbox.h').exists())
                 subprocess.run([sys.executable,str(folder/'prepare.py'),'--no-copy'],check=True,capture_output=True)
                 exe=folder/('check.exe' if os.name=='nt' else 'check')
                 subprocess.run([os.environ.get('CC','gcc'),'-std=c99',*shlex.split(os.environ.get('TOOLBOX_CFLAGS','')),str(folder/'main.c'),'-lm','-o',str(exe)],check=True,capture_output=True)
                 subprocess.run([str(exe)],input=data,text=True,check=True)
 
     def test_typed_headers_in_prepared_submission(self):
-        script = ROOT / 'dist/c_toolbox_v0.9.1.py'
+        script = ROOT / 'dist/c_toolbox_v0.10.0.py'
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp) / 'problem'
-            subprocess.run([sys.executable, str(script), '--folder', str(folder)],
+            subprocess.run([sys.executable, str(script), '--folder', str(folder), '--modular'],
                            check=True, capture_output=True)
             cases = [('int', 'Int', 'int', ''),
                      ('long_long', 'LongLong', 'll', ''),
@@ -130,6 +130,36 @@ int main(void){
                                  text=True, capture_output=True)
             self.assertNotEqual(bad.returncode, 0)
             self.assertIn('row width mismatch', bad.stderr)
+
+    def test_single_header_submission(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / 'problem'
+            script = ROOT / 'dist/c_toolbox_v0.10.0.py'
+            subprocess.run([sys.executable, str(script), '--folder', str(folder)],
+                           check=True, capture_output=True)
+            self.assertEqual({p.name for p in folder.iterdir()}, {'main.c', 'c_toolbox.h', 'prepare.py'})
+            main = folder / 'main.c'
+            main.write_bytes((ROOT / 'tests/modular/single_permutation.c').read_bytes())
+            cc = os.environ.get('CC', 'gcc')
+            flags = shlex.split(os.environ.get('TOOLBOX_CFLAGS', ''))
+
+            def compile_source(source, name):
+                exe = folder / (name + '.exe')
+                subprocess.run([cc, '-std=c99', *flags, str(source), '-lm', '-o', str(exe)],
+                               check=True)
+                return exe
+
+            full = compile_source(main, 'full')
+            (folder / 'c_toolbox.h').unlink()
+            subprocess.run([sys.executable, str(folder / 'prepare.py'), '--no-copy'],
+                           check=True, capture_output=True)
+            submission = folder / '.toolbox/submit.c'
+            self.assertLess(submission.stat().st_size, 30000)
+            self.assertNotIn('static double IntVector_stddev(', submission.read_text(encoding='utf-8'))
+            compact = compile_source(submission, 'compact')
+            for data in ('0\n', '1\nA X\n', '3\nA X\nA Y\nA Z\n'):
+                self.assertEqual(subprocess.check_output([str(full)], input=data, text=True),
+                                 subprocess.check_output([str(compact)], input=data, text=True))
 
     def test_scalar(self):
         with tempfile.TemporaryDirectory() as tmp:

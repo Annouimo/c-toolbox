@@ -1,14 +1,16 @@
 # C Toolbox
 
-面向熟悉 C 的使用者，提供按需引入的 C99 字符串、容器和 IO。由 Annouimo/c-exam-kit 的工具箱开发分支迁入，原提交历史保留。
+面向熟悉 C 的使用者，提供 C99 字符串、容器和 IO。由 Annouimo/c-exam-kit 的工具箱开发分支迁入，原提交历史保留。
 
-v0.9.1 统一矩阵打印和容器写入接口，并新增布尔容器输出。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
+v0.10.0 默认生成单头文件，提交时按需组装。旧脚手架请访问 https://github.com/Annouimo/c-exam-kit 。
 
 ## 使用
 
-下载 Release 的单文件 Python 入口；运行后输入题目目录，再选择程序框架：空白 main、T 组、EOF、哨兵、q 次操作，或仅创建工具箱。空输入直接导出 Markdown 手册。输入类型由用户在循环中按题目修改，不单独提供成组的类型骨架。创建的 main.c 默认仅包含 `ctb/io.h`；字符串用 `ctb/string.h`，整数向量用 `ctb/vector/int.h`，其他类型按需引入。头文件放在题目目录的 `ctb/` 文件夹中。
+下载 Release 的单文件 Python 入口。运行后输入题目目录，再选择程序框架。空输入直接导出 Markdown 手册。默认生成 `main.c`、`c_toolbox.h` 和 `prepare.py`。选择“仅创建工具箱”可省略 `main.c`。
 
-每题目录自带 prepare.py，运行后扫描 C 文件、选择源文件、展开本地依赖、检查编译并复制提交源码。不会运行用户程序，除非指定 --run；不会覆盖原文件。每题保留创建时版本。
+默认模式面向单个 `main.c`，支持内置 API，以及工具箱和标准库的 `#include`。运行 `prepare.py` 时，它读取 `main.c`，用内置索引组装单文件，报告字节数，编译通过后复制。完整头文件用于本地编译，须和 `prepare.py` 成对更新。
+
+需要自定义容器、用户头文件或其他预处理指令时，用入口脚本的 `--modular` 生成分模块项目。该模式在提交时展开本地头文件。两种模式均可用 `--no-copy` 只检查和保存，或 `--run` 显式运行。每题保留创建时的版本。
 
 ## 开发
 
@@ -25,7 +27,7 @@ python toolbox/tests/test_workflow.py
 ## 最短用法
 
 ```c
-#include "ctb/io.h"
+#include "c_toolbox.h"
 int main(void) {
     int a = read_int();
     int b = read_int();
@@ -34,7 +36,7 @@ int main(void) {
 }
 ```
 
-字符串增加 `#include "ctb/string.h"`；IntVector 增加 `#include "ctb/vector/int.h"`。所有权、模块表和接口以[速查手册](toolbox/docs/quick_reference.md)为准。
+所有权、模块表和接口以[速查手册](toolbox/docs/quick_reference.md)为准。
 
 ## 发布
 

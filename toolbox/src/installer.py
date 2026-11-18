@@ -34,7 +34,7 @@ def starter(skeleton):
         raise ValueError("unknown input skeleton: " + skeleton)
     return '#include "ctb/io.h"\n\nint main(void) {\n    ' + SKELETONS[skeleton] + '\n    return 0;\n}\n'
 
-def initialize_folder(answer, base=None, skeleton="blank"):
+def initialize_folder(answer, base=None, skeleton="blank", single_header=True):
     base = Path(base or Path(__file__).resolve().parent).resolve()
     version = BUNDLE["catalog"]["version"]
     if not answer.strip():
@@ -60,10 +60,12 @@ def initialize_folder(answer, base=None, skeleton="blank"):
         raise ValueError(message)
     if skeleton not in SKELETONS and skeleton != "toolbox_only":
         raise ValueError("unknown project skeleton: " + skeleton)
-    contents = dict(BUNDLE["headers"])
-    contents["prepare.py"] = BUNDLE["prepare"]
+    contents = ({"c_toolbox.h": BUNDLE["single_header"], "prepare.py": BUNDLE["single_prepare"]}
+                if single_header else dict(BUNDLE["headers"], **{"prepare.py": BUNDLE["prepare"]}))
     if skeleton != "toolbox_only":
         contents["main.c"] = starter(skeleton)
+        if single_header:
+            contents["main.c"] = contents["main.c"].replace("ctb/io.h", "c_toolbox.h", 1)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.mkdir(exist_ok=False)
     created = []
@@ -106,6 +108,12 @@ def cli(argv=None):
     parser = argparse.ArgumentParser(description="C Toolbox: create a problem folder; Enter exports Markdown.")
     parser.add_argument("--folder", help="noninteractive initialization; empty value exports the manual")
     parser.add_argument("--skeleton", choices=[key for key, _ in SKELETON_MENU], default=None)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--modular", dest="single_header", action="store_false",
+                      help="生成分模块头文件，提交时完整展开")
+    mode.add_argument("--single-header", dest="single_header", action="store_true",
+                      help="生成单头文件，提交时按需组装（默认）")
+    parser.set_defaults(single_header=True)
     options = parser.parse_args(args)
     try:
         if options.folder is None:
@@ -126,7 +134,7 @@ def cli(argv=None):
                 if selection not in choices:
                     raise ValueError("请选择 1 到 6。")
                 choice = choices[selection]
-        initialize_folder(answer, skeleton=choice)
+        initialize_folder(answer, skeleton=choice, single_header=options.single_header)
     except (ValueError, OSError) as error:
         print(str(error), file=sys.stderr)
         return 1

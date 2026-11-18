@@ -1,6 +1,5 @@
-# C Toolbox v0.9.1
+# C Toolbox v0.10.0
 
-- 新增布尔向量和布尔矩阵的 `0/1` 输出。
-- 矩阵打印统一使用 `elem_sep, row_sep, end`。例如 `print_int_matrix(&m, " ", "\n", "\n")`。迁移旧调用时需要补上行间分隔符，字符矩阵还需指定行内分隔符。
-- Vector 和 Matrix 的 `set` 统一为越界报错。原来检查 Vector `set` 返回值的调用请换成 `try_set`。
-- Vector 新增 `filled`、`in_bounds`。Matrix 新增尺寸查询和 `resize`，缩放保留左上角重叠区域。
+- 新题目默认生成 `main.c`、`c_toolbox.h` 和 `prepare.py`。写题时使用完整头，提交时按内置依赖索引组装并编译检查。
+- 使用 `--modular` 可继续生成分模块目录，支持原来的头文件展开流程及自定义容器。
+- 原版排列题的提交文件约 27 KB。提交脚本显示生成文件的字节数。

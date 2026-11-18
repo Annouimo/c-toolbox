@@ -101,6 +101,8 @@ static void print_bools(const BoolVector *v, const char *sep, const char *end) {
     print_text("", end);
 }
 """
+        if suffix == 'int':
+            code += read_template('vector_int_permutation.c')
         filename = {'ll': 'long_long', 'size': 'index'}.get(suffix, suffix)
         path = f'ctb/vector/{filename}.h'
         result[path] = wrap(path, code, ['../io.h'])
