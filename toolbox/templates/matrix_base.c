@@ -85,3 +85,24 @@ static @NAME@ @NAME@_slice(const @NAME@ *m, size_t row, size_t col,
                    width * sizeof *out.data);
     return out;
 }
+
+static bool @NAME@_try_set(@NAME@ *m, intmax_t row, intmax_t col, @TYPE@ value) {
+    if (!@NAME@_in_bounds(m, row, col)) return false;
+    @NAME@_set(m, (size_t)row, (size_t)col, value);
+    return true;
+}
+static size_t @NAME@_rows(const @NAME@ *m) { return m->rows; }
+static size_t @NAME@_cols(const @NAME@ *m) { return m->cols; }
+static size_t @NAME@_size(const @NAME@ *m) { return m->rows * m->cols; }
+static void @NAME@_resize(@NAME@ *m, size_t rows, size_t cols, @TYPE@ value) {
+    if (rows == m->rows && cols == m->cols) return;
+    @NAME@ out = @NAME@_filled(rows, cols, value);
+    size_t common_rows = rows < m->rows ? rows : m->rows;
+    size_t common_cols = cols < m->cols ? cols : m->cols;
+    if (common_cols)
+        for (size_t r = 0; r < common_rows; ++r)
+            memcpy(out.data + r * cols, m->data + r * m->cols,
+                   common_cols * sizeof *out.data);
+    @NAME@_free(m);
+    *m = out;
+}

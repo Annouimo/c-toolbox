@@ -39,7 +39,7 @@ int main(void){
                 (folder/'single.c').write_text('#include "'+name+'"\nint main(void){return 0;}')
                 compile_file(folder/'single.c')
     def test_skeleton_submission(self):
-        script=ROOT/'dist/c_toolbox_v0.9.0.py'
+        script=ROOT/'dist/c_toolbox_v0.9.1.py'
         with tempfile.TemporaryDirectory() as tmp:
             cases={'blank':'','t':'0\n','eof':'1\n','sentinel':'-1\n','operations':'0\n'}
             for mode,data in cases.items():
@@ -52,7 +52,7 @@ int main(void){
                 subprocess.run([str(exe)],input=data,text=True,check=True)
 
     def test_typed_headers_in_prepared_submission(self):
-        script = ROOT / 'dist/c_toolbox_v0.9.0.py'
+        script = ROOT / 'dist/c_toolbox_v0.9.1.py'
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp) / 'problem'
             subprocess.run([sys.executable, str(script), '--folder', str(folder)],
@@ -78,7 +78,7 @@ int main(void){
         {name}Matrix t = {name}Matrix_transpose(&m);
         {name}Matrix p = {name}Matrix_multiply(&m, &t);
         assert({name}Matrix_get(&p, 0, 0) == 13);
-        print_{suffix}_matrix(&p, {precision}" ", "");
+        print_{suffix}_matrix(&p, {precision}" ", "|", "\\n");
         {name}Matrix_free(&p);
         {name}Matrix_free(&t);
         {name}Matrix_free(&m);
@@ -125,7 +125,7 @@ int main(void){
                             str(ROOT / 'tests/modular/grid.c'), '-lm', '-o', str(exe)], check=True)
             result = subprocess.run([str(exe)], input='3 4\r\n ab \r\n    \r\n1234',
                                     text=True, capture_output=True, check=True)
-            self.assertEqual(result.stdout, '====\n#*+#\n##+#\n')
+            self.assertEqual(result.stdout, '====\n#*+#\n##+#\n1,0|0,0!\n0/1!\n')
             bad = subprocess.run([str(exe)], input='1 4\nabc\n',
                                  text=True, capture_output=True)
             self.assertNotEqual(bad.returncode, 0)

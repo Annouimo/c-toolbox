@@ -22,3 +22,15 @@ static void @NAME@_sort_by(@NAME@ *v,int (*compare)(const @TYPE@ *,const @TYPE@ 
     if(v->len<2)return;
     @TYPE@ *scratch=tb_resize(NULL,v->len,sizeof *scratch);@NAME@_merge_sort(v->data,scratch,v->len,compare);free(scratch);
 }
+
+static @NAME@ @NAME@_filled(size_t length, @TYPE@ value) {
+    @NAME@ v = @NAME@_new();
+    @NAME@_resize(&v, length, value);
+    return v;
+}
+static bool @NAME@_in_bounds(const @NAME@ *v, intmax_t pos) {
+    return pos >= 0 && (uintmax_t)pos < v->len;
+}
+static void @NAME@_set(@NAME@ *v, size_t pos, @TYPE@ value) {
+    if (!@NAME@_try_set(v, pos, value)) tb_fail("vector index out of range");
+}

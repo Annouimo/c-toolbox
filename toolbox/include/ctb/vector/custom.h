@@ -59,7 +59,7 @@ if (pos >= v->len) return false; \
 if (out) *out = v->data[pos]; \
 return true; \
 } \
-static bool CTB_JOIN(Name,_set)(Name *v, size_t pos, Type value) { \
+static bool CTB_JOIN(Name,_try_set)(Name *v, size_t pos, Type value) { \
 if (pos >= v->len) return false; \
 v->data[pos] = value; \
 return true; \
@@ -210,6 +210,17 @@ static void CTB_JOIN(Name,_sort_by)(Name *v,int (*compare)(const Type *,const Ty
 if(!compare)tb_fail("null comparator"); \
 if(v->len<2)return; \
 Type *scratch=tb_resize(NULL,v->len,sizeof *scratch);CTB_JOIN(Name,_merge_sort)(v->data,scratch,v->len,compare);free(scratch); \
+} \
+static Name CTB_JOIN(Name,_filled)(size_t length, Type value) { \
+Name v = CTB_JOIN(Name,_new)(); \
+CTB_JOIN(Name,_resize)(&v, length, value); \
+return v; \
+} \
+static bool CTB_JOIN(Name,_in_bounds)(const Name *v, intmax_t pos) { \
+return pos >= 0 && (uintmax_t)pos < v->len; \
+} \
+static void CTB_JOIN(Name,_set)(Name *v, size_t pos, Type value) { \
+if (!CTB_JOIN(Name,_try_set)(v, pos, value)) tb_fail("vector index out of range"); \
 }
 
 #endif

@@ -1,6 +1,7 @@
 #ifndef CTB_MATRIX_CHAR_H
 #define CTB_MATRIX_CHAR_H
 #include "detail/border.h"
+#include "../io.h"
 #include "../string.h"
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { char *data; size_t rows, cols; } CharMatrix;
@@ -89,6 +90,40 @@ static CharMatrix CharMatrix_slice(const CharMatrix *m, size_t row, size_t col,
                    width * sizeof *out.data);
     return out;
 }
+
+static bool CharMatrix_try_set(CharMatrix *m, intmax_t row, intmax_t col, char value) {
+    if (!CharMatrix_in_bounds(m, row, col)) return false;
+    CharMatrix_set(m, (size_t)row, (size_t)col, value);
+    return true;
+}
+static size_t CharMatrix_rows(const CharMatrix *m) { return m->rows; }
+static size_t CharMatrix_cols(const CharMatrix *m) { return m->cols; }
+static size_t CharMatrix_size(const CharMatrix *m) { return m->rows * m->cols; }
+static void CharMatrix_resize(CharMatrix *m, size_t rows, size_t cols, char value) {
+    if (rows == m->rows && cols == m->cols) return;
+    CharMatrix out = CharMatrix_filled(rows, cols, value);
+    size_t common_rows = rows < m->rows ? rows : m->rows;
+    size_t common_cols = cols < m->cols ? cols : m->cols;
+    if (common_cols)
+        for (size_t r = 0; r < common_rows; ++r)
+            memcpy(out.data + r * cols, m->data + r * m->cols,
+                   common_cols * sizeof *out.data);
+    CharMatrix_free(m);
+    *m = out;
+}
+/* SPDX-License-Identifier: MIT-0 */
+static void print_char_matrix(const CharMatrix *m,
+                                  const char *elem_sep, const char *row_sep, const char *end) {
+    for (size_t r = 0; r < m->rows; ++r) {
+        if (r) print_text(row_sep, "");
+        for (size_t c = 0; c < m->cols; ++c) {
+            if (c) print_text(elem_sep, "");
+            char value = m->data[r * m->cols + c];
+            print_char(value, "");
+        }
+    }
+    print_text("", end);
+}
 /* SPDX-License-Identifier: MIT-0 */
 static CharMatrix read_char_matrix(size_t rows, size_t cols) {
     CharMatrix m = CharMatrix_new(rows, cols);
@@ -103,14 +138,6 @@ static CharMatrix read_char_matrix(size_t rows, size_t cols) {
         string_free(&line);
     }
     return m;
-}
-static void print_char_matrix(const CharMatrix *m, const char *end) {
-    for (size_t r = 0; r < m->rows; ++r) {
-        if (r) print_char('\n', "");
-        if (m->cols && fwrite(m->data + r * m->cols, 1, m->cols, stdout) != m->cols)
-            io_require(IO_STREAM_ERROR);
-    }
-    print_text("", end);
 }
 
 #endif

@@ -90,6 +90,27 @@ static IntMatrix IntMatrix_slice(const IntMatrix *m, size_t row, size_t col,
                    width * sizeof *out.data);
     return out;
 }
+
+static bool IntMatrix_try_set(IntMatrix *m, intmax_t row, intmax_t col, int value) {
+    if (!IntMatrix_in_bounds(m, row, col)) return false;
+    IntMatrix_set(m, (size_t)row, (size_t)col, value);
+    return true;
+}
+static size_t IntMatrix_rows(const IntMatrix *m) { return m->rows; }
+static size_t IntMatrix_cols(const IntMatrix *m) { return m->cols; }
+static size_t IntMatrix_size(const IntMatrix *m) { return m->rows * m->cols; }
+static void IntMatrix_resize(IntMatrix *m, size_t rows, size_t cols, int value) {
+    if (rows == m->rows && cols == m->cols) return;
+    IntMatrix out = IntMatrix_filled(rows, cols, value);
+    size_t common_rows = rows < m->rows ? rows : m->rows;
+    size_t common_cols = cols < m->cols ? cols : m->cols;
+    if (common_cols)
+        for (size_t r = 0; r < common_rows; ++r)
+            memcpy(out.data + r * cols, m->data + r * m->cols,
+                   common_cols * sizeof *out.data);
+    IntMatrix_free(m);
+    *m = out;
+}
 /* SPDX-License-Identifier: MIT-0 */
 static IntMatrix IntMatrix_multiply(const IntMatrix *a,const IntMatrix *b) {
     if(a->cols!=b->rows)tb_fail("matrix dimension mismatch");
@@ -111,14 +132,6 @@ static IntMatrix read_int_matrix(size_t rows,size_t cols) {
     for(size_t i=0;i<n;++i)m.data[i]=read_int();
     return m;
 }
-static void print_int_matrix(const IntMatrix *m,const char *separator,const char *end) {
-    for(size_t i=0;i<m->rows;++i) {
-        for(size_t j=0;j<m->cols;++j) { if(j)print_text(separator,"");int value = m->data[i*m->cols+j]; print_int(value, ""); }
-        print_char('\n',"");
-    }
-    print_text("",end);
-}
-
 static long long IntMatrix_sum_region(const IntMatrix *m, size_t row, size_t col,
                                       size_t height, size_t width, bool border) {
     IntMatrix_check_rect(m, row, col, height, width);
@@ -141,6 +154,19 @@ static long long IntMatrix_sum_rect(const IntMatrix *m, size_t row, size_t col,
 static long long IntMatrix_sum_border(const IntMatrix *m, size_t row, size_t col,
                                       size_t height, size_t width) {
     return IntMatrix_sum_region(m, row, col, height, width, true);
+}
+/* SPDX-License-Identifier: MIT-0 */
+static void print_int_matrix(const IntMatrix *m,
+                                  const char *elem_sep, const char *row_sep, const char *end) {
+    for (size_t r = 0; r < m->rows; ++r) {
+        if (r) print_text(row_sep, "");
+        for (size_t c = 0; c < m->cols; ++c) {
+            if (c) print_text(elem_sep, "");
+            int value = m->data[r * m->cols + c];
+            print_int(value, "");
+        }
+    }
+    print_text("", end);
 }
 
 #endif

@@ -58,7 +58,7 @@ static bool IntVector_get_into(const IntVector *v, size_t pos, int *out) {
     if (out) *out = v->data[pos];
     return true;
 }
-static bool IntVector_set(IntVector *v, size_t pos, int value) {
+static bool IntVector_try_set(IntVector *v, size_t pos, int value) {
     if (pos >= v->len) return false;
     v->data[pos] = value;
     return true;
@@ -347,6 +347,18 @@ static void IntVector_sort_by(IntVector *v,int (*compare)(const int *,const int 
     if(!compare)tb_fail("null comparator");
     if(v->len<2)return;
     int *scratch=tb_resize(NULL,v->len,sizeof *scratch);IntVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
+}
+
+static IntVector IntVector_filled(size_t length, int value) {
+    IntVector v = IntVector_new();
+    IntVector_resize(&v, length, value);
+    return v;
+}
+static bool IntVector_in_bounds(const IntVector *v, intmax_t pos) {
+    return pos >= 0 && (uintmax_t)pos < v->len;
+}
+static void IntVector_set(IntVector *v, size_t pos, int value) {
+    if (!IntVector_try_set(v, pos, value)) tb_fail("vector index out of range");
 }
 
 static IntVector read_ints(size_t count) { IntVector v=IntVector_new();IntVector_reserve(&v,count);for(size_t i=0;i<count;++i) IntVector_push(&v,read_int());return v;}

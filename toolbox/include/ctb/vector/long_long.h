@@ -58,7 +58,7 @@ static bool LongLongVector_get_into(const LongLongVector *v, size_t pos, long lo
     if (out) *out = v->data[pos];
     return true;
 }
-static bool LongLongVector_set(LongLongVector *v, size_t pos, long long value) {
+static bool LongLongVector_try_set(LongLongVector *v, size_t pos, long long value) {
     if (pos >= v->len) return false;
     v->data[pos] = value;
     return true;
@@ -347,6 +347,18 @@ static void LongLongVector_sort_by(LongLongVector *v,int (*compare)(const long l
     if(!compare)tb_fail("null comparator");
     if(v->len<2)return;
     long long *scratch=tb_resize(NULL,v->len,sizeof *scratch);LongLongVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
+}
+
+static LongLongVector LongLongVector_filled(size_t length, long long value) {
+    LongLongVector v = LongLongVector_new();
+    LongLongVector_resize(&v, length, value);
+    return v;
+}
+static bool LongLongVector_in_bounds(const LongLongVector *v, intmax_t pos) {
+    return pos >= 0 && (uintmax_t)pos < v->len;
+}
+static void LongLongVector_set(LongLongVector *v, size_t pos, long long value) {
+    if (!LongLongVector_try_set(v, pos, value)) tb_fail("vector index out of range");
 }
 
 static LongLongVector read_lls(size_t count) { LongLongVector v=LongLongVector_new();LongLongVector_reserve(&v,count);for(size_t i=0;i<count;++i) LongLongVector_push(&v,read_ll());return v;}

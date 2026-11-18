@@ -89,6 +89,27 @@ static DoubleMatrix DoubleMatrix_slice(const DoubleMatrix *m, size_t row, size_t
                    width * sizeof *out.data);
     return out;
 }
+
+static bool DoubleMatrix_try_set(DoubleMatrix *m, intmax_t row, intmax_t col, double value) {
+    if (!DoubleMatrix_in_bounds(m, row, col)) return false;
+    DoubleMatrix_set(m, (size_t)row, (size_t)col, value);
+    return true;
+}
+static size_t DoubleMatrix_rows(const DoubleMatrix *m) { return m->rows; }
+static size_t DoubleMatrix_cols(const DoubleMatrix *m) { return m->cols; }
+static size_t DoubleMatrix_size(const DoubleMatrix *m) { return m->rows * m->cols; }
+static void DoubleMatrix_resize(DoubleMatrix *m, size_t rows, size_t cols, double value) {
+    if (rows == m->rows && cols == m->cols) return;
+    DoubleMatrix out = DoubleMatrix_filled(rows, cols, value);
+    size_t common_rows = rows < m->rows ? rows : m->rows;
+    size_t common_cols = cols < m->cols ? cols : m->cols;
+    if (common_cols)
+        for (size_t r = 0; r < common_rows; ++r)
+            memcpy(out.data + r * cols, m->data + r * m->cols,
+                   common_cols * sizeof *out.data);
+    DoubleMatrix_free(m);
+    *m = out;
+}
 /* SPDX-License-Identifier: MIT-0 */
 static DoubleMatrix DoubleMatrix_multiply(const DoubleMatrix *a,const DoubleMatrix *b) {
     if(a->cols!=b->rows)tb_fail("matrix dimension mismatch");
@@ -110,14 +131,6 @@ static DoubleMatrix read_double_matrix(size_t rows,size_t cols) {
     for(size_t i=0;i<n;++i)m.data[i]=read_double();
     return m;
 }
-static void print_double_matrix(const DoubleMatrix *m, int digits,const char *separator,const char *end) {
-    for(size_t i=0;i<m->rows;++i) {
-        for(size_t j=0;j<m->cols;++j) { if(j)print_text(separator,"");double value = m->data[i*m->cols+j]; print_fixed(value, digits, ""); }
-        print_char('\n',"");
-    }
-    print_text("",end);
-}
-
 static double DoubleMatrix_sum_region(const DoubleMatrix *m, size_t row, size_t col,
                                       size_t height, size_t width, bool border) {
     DoubleMatrix_check_rect(m, row, col, height, width);
@@ -140,6 +153,19 @@ static double DoubleMatrix_sum_rect(const DoubleMatrix *m, size_t row, size_t co
 static double DoubleMatrix_sum_border(const DoubleMatrix *m, size_t row, size_t col,
                                       size_t height, size_t width) {
     return DoubleMatrix_sum_region(m, row, col, height, width, true);
+}
+/* SPDX-License-Identifier: MIT-0 */
+static void print_double_matrix(const DoubleMatrix *m, int digits,
+                                  const char *elem_sep, const char *row_sep, const char *end) {
+    for (size_t r = 0; r < m->rows; ++r) {
+        if (r) print_text(row_sep, "");
+        for (size_t c = 0; c < m->cols; ++c) {
+            if (c) print_text(elem_sep, "");
+            double value = m->data[r * m->cols + c];
+            print_fixed(value, digits, "");
+        }
+    }
+    print_text("", end);
 }
 
 #endif

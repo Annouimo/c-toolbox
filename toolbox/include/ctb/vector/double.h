@@ -58,7 +58,7 @@ static bool DoubleVector_get_into(const DoubleVector *v, size_t pos, double *out
     if (out) *out = v->data[pos];
     return true;
 }
-static bool DoubleVector_set(DoubleVector *v, size_t pos, double value) {
+static bool DoubleVector_try_set(DoubleVector *v, size_t pos, double value) {
     if (pos >= v->len) return false;
     v->data[pos] = value;
     return true;
@@ -328,6 +328,18 @@ static void DoubleVector_sort_by(DoubleVector *v,int (*compare)(const double *,c
     if(!compare)tb_fail("null comparator");
     if(v->len<2)return;
     double *scratch=tb_resize(NULL,v->len,sizeof *scratch);DoubleVector_merge_sort(v->data,scratch,v->len,compare);free(scratch);
+}
+
+static DoubleVector DoubleVector_filled(size_t length, double value) {
+    DoubleVector v = DoubleVector_new();
+    DoubleVector_resize(&v, length, value);
+    return v;
+}
+static bool DoubleVector_in_bounds(const DoubleVector *v, intmax_t pos) {
+    return pos >= 0 && (uintmax_t)pos < v->len;
+}
+static void DoubleVector_set(DoubleVector *v, size_t pos, double value) {
+    if (!DoubleVector_try_set(v, pos, value)) tb_fail("vector index out of range");
 }
 
 static DoubleVector read_doubles(size_t count) { DoubleVector v=DoubleVector_new();DoubleVector_reserve(&v,count);for(size_t i=0;i<count;++i) DoubleVector_push(&v,read_double());return v;}

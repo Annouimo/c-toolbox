@@ -1,6 +1,7 @@
 #ifndef CTB_MATRIX_BOOL_H
 #define CTB_MATRIX_BOOL_H
 #include "detail/border.h"
+#include "../io.h"
 /* SPDX-License-Identifier: MIT-0 */
 typedef struct { bool *data; size_t rows, cols; } BoolMatrix;
 static BoolMatrix BoolMatrix_new(size_t rows,size_t cols) {
@@ -87,6 +88,40 @@ static BoolMatrix BoolMatrix_slice(const BoolMatrix *m, size_t row, size_t col,
             memcpy(out.data + r * width, m->data + (row + r) * m->cols + col,
                    width * sizeof *out.data);
     return out;
+}
+
+static bool BoolMatrix_try_set(BoolMatrix *m, intmax_t row, intmax_t col, bool value) {
+    if (!BoolMatrix_in_bounds(m, row, col)) return false;
+    BoolMatrix_set(m, (size_t)row, (size_t)col, value);
+    return true;
+}
+static size_t BoolMatrix_rows(const BoolMatrix *m) { return m->rows; }
+static size_t BoolMatrix_cols(const BoolMatrix *m) { return m->cols; }
+static size_t BoolMatrix_size(const BoolMatrix *m) { return m->rows * m->cols; }
+static void BoolMatrix_resize(BoolMatrix *m, size_t rows, size_t cols, bool value) {
+    if (rows == m->rows && cols == m->cols) return;
+    BoolMatrix out = BoolMatrix_filled(rows, cols, value);
+    size_t common_rows = rows < m->rows ? rows : m->rows;
+    size_t common_cols = cols < m->cols ? cols : m->cols;
+    if (common_cols)
+        for (size_t r = 0; r < common_rows; ++r)
+            memcpy(out.data + r * cols, m->data + r * m->cols,
+                   common_cols * sizeof *out.data);
+    BoolMatrix_free(m);
+    *m = out;
+}
+/* SPDX-License-Identifier: MIT-0 */
+static void print_bool_matrix(const BoolMatrix *m,
+                                  const char *elem_sep, const char *row_sep, const char *end) {
+    for (size_t r = 0; r < m->rows; ++r) {
+        if (r) print_text(row_sep, "");
+        for (size_t c = 0; c < m->cols; ++c) {
+            if (c) print_text(elem_sep, "");
+            bool value = m->data[r * m->cols + c];
+            print_int(value, "");
+        }
+    }
+    print_text("", end);
 }
 
 #endif

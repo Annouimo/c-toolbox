@@ -26,13 +26,14 @@ def headers():
 
     matrix_base = read_template('matrix_base.c')
     matrix_numeric = read_template('matrix_typed.c')
+    matrix_print = read_template('matrix_print.c')
     for suffix, filename, name, ctype in (
         ('int', 'int', 'IntMatrix', 'int'),
         ('ll', 'long_long', 'LongLongMatrix', 'long long'),
         ('double', 'double', 'DoubleMatrix', 'double'),
     ):
         integer = suffix != 'double'
-        code = matrix_base + matrix_numeric
+        code = matrix_base + matrix_numeric + matrix_print
         code = (code.replace('@NAME@', name).replace('@TYPE@', ctype)
                 .replace('@SUFFIX@', suffix).replace('@READ@', f'read_{suffix}')
                 .replace('@ACCUMULATOR@', 'long long' if integer else 'double')
@@ -58,7 +59,10 @@ def headers():
     for ctype, name in (('char', 'CharMatrix'), ('bool', 'BoolMatrix')):
         path = f'ctb/matrix/{ctype}.h'
         code = matrix_base.replace('@NAME@', name).replace('@TYPE@', ctype)
-        deps = ['detail/border.h']
+        printer = 'print_char(value, "")' if ctype == 'char' else 'print_int(value, "")'
+        code += (matrix_print.replace('@NAME@', name).replace('@TYPE@', ctype)
+                 .replace('@SUFFIX@', ctype).replace('@PRECISION@', '').replace('@PRINT@', printer))
+        deps = ['detail/border.h', '../io.h']
         if ctype == 'char':
             code += read_template('matrix_char_io.c')
             deps.append('../string.h')
@@ -78,6 +82,7 @@ def headers():
         for p in catalog['vector']['numeric_templates'].get(ctype, []):code+='\n'+(ROOT/'templates'/p).read_text(encoding="utf-8")
         for operation in ('get','pop','front','back'):
             code=re.sub(r'@NAME@_' + operation + r'\b', '@NAME@_' + operation + '_into', code)
+        code = code.replace('@NAME@_set(', '@NAME@_try_set(')
         code += '\n' + (ROOT/'templates/vector_public.c').read_text(encoding="utf-8")
         code=code.replace('@NAME@',name).replace('@TYPE@',ctype).replace('@MIN@','LLONG_MIN' if suffix=='ll' else 'INT_MIN').replace('@MAX@','LLONG_MAX' if suffix=='ll' else 'INT_MAX')
         if reader is not None:
@@ -86,6 +91,16 @@ def headers():
                 code+=f'\nstatic void print_doubles(const {name} *v,int digits,const char *sep,const char *end) {{for(size_t i=0;i<v->len;++i){{if(i)print_text(sep,"");print_double(v->data[i],digits,"");}}print_text("",end);}}\n'
             else:
                 code+=f'\nstatic void print_{suffix}s(const {name} *v,const char *sep,const char *end) {{for(size_t i=0;i<v->len;++i){{if(i)print_text(sep,"");print_{printer}(v->data[i],"");}}print_text("",end);}}\n'
+        if suffix == 'bool':
+            code += """
+static void print_bools(const BoolVector *v, const char *sep, const char *end) {
+    for (size_t i = 0; i < v->len; ++i) {
+        if (i) print_text(sep, "");
+        print_int(v->data[i], "");
+    }
+    print_text("", end);
+}
+"""
         filename = {'ll': 'long_long', 'size': 'index'}.get(suffix, suffix)
         path = f'ctb/vector/{filename}.h'
         result[path] = wrap(path, code, ['../io.h'])
@@ -93,6 +108,7 @@ def headers():
     custom_vector = re.sub(r'#define @NAME@_values[^\n]*\n[^\n]*\n', '', template('vector'))
     for operation in ('get', 'pop', 'front', 'back'):
         custom_vector = re.sub(r'@NAME@_' + operation + r'\b', '@NAME@_' + operation + '_into', custom_vector)
+    custom_vector = custom_vector.replace('@NAME@_set(', '@NAME@_try_set(')
     custom_vector += '\n' + read_template('vector_public.c')
     for kind, code in (('vector', custom_vector), ('matrix', matrix_base)):
         code=re.sub(r'/\*.*?\*/','',code,flags=re.S)

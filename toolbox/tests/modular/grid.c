@@ -25,7 +25,7 @@ int main(void) {
     CharMatrix_fill(&part, '!');
     assert(CharMatrix_get(&art, 1, 1) == '*');
     CharMatrix_free(&part);
-    print_char_matrix(&art, "\n");
+    print_char_matrix(&art, "", "\n", "\n");
     CharMatrix_free(&art);
 
     for (size_t h = 0; h <= 5; ++h) {
@@ -53,6 +53,11 @@ int main(void) {
     assert(BoolMatrix_try_get(&visited, 0, 0).ok);
     assert(!BoolMatrix_try_get(&visited, 0, 0).value);
     assert(!BoolMatrix_try_get(&visited, 0, 1).ok);
+    assert(!BoolMatrix_try_set(&visited, -1, 0, true));
+    assert(BoolMatrix_try_set(&visited, 0, 0, true));
+    BoolMatrix_resize(&visited, 2, 2, false);
+    assert(BoolMatrix_size(&visited) == 4 && BoolMatrix_get(&visited, 0, 0));
+    print_bool_matrix(&visited, ",", "|", "!\n");
     BoolMatrix_free(&visited);
     assert(BoolMatrix_empty(&visited));
 
@@ -62,7 +67,11 @@ int main(void) {
     CharVector chars = CharVector_values('a', '\0');
     assert(CharVector_get(&chars, 1) == '\0');
     CharVector_free(&chars);
-    BoolVector flags = BoolVector_values(false, true);
+    BoolVector flags = BoolVector_filled(2, true);
     assert(BoolVector_get(&flags, 1));
+    assert(!BoolVector_in_bounds(&flags, -1));
+    assert(!BoolVector_try_set(&flags, 2, false));
+    BoolVector_set(&flags, 0, false);
+    print_bools(&flags, "/", "!\n");
     BoolVector_free(&flags);
 }
