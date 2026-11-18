@@ -45,7 +45,7 @@ int main(void){
             for mode,data in cases.items():
                 folder=Path(tmp)/mode
                 subprocess.run([sys.executable,str(script),'--folder',str(folder),'--skeleton',mode],check=True,capture_output=True)
-                self.assertFalse((folder/'c_toolbox.h').exists())
+                self.assertTrue((folder/'c_toolbox.h').exists())
                 subprocess.run([sys.executable,str(folder/'prepare.py'),'--no-copy'],check=True,capture_output=True)
                 exe=folder/('check.exe' if os.name=='nt' else 'check')
                 subprocess.run([os.environ.get('CC','gcc'),'-std=c99',*shlex.split(os.environ.get('TOOLBOX_CFLAGS','')),str(folder/'main.c'),'-lm','-o',str(exe)],check=True,capture_output=True)
